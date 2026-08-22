@@ -1,0 +1,28 @@
+*.iml
+.gradle/
+local.properties
+.idea/
+.DS_Store
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.keystore
+*.jks
+
+# Sunucu / dağıtım
+#
+# ⚠️ Yollar '/' ile KÖKE BAĞLANIR. Ankrajsız `arsiv/` deseni her düzeydeki `arsiv` klasörünü
+# yutuyordu; `server/src/main/kotlin/.../server/arsiv/` KAYNAK paketi de buna dahildi ve
+# `ArsivDizini.kt` Faz A'dan beri hiç commit'lenmemişti (Faz F'de fark edildi).
+deploy/.env
+/deploy/arsiv/
+/arsiv/
+/deploy/yukleme/
+/yukleme/
+# `deploy/yedek.sh` geliştirme makinesinde YEDEK_KOK ezilerek denenirken buraya yazar.
+/deploy/yedek-test/
+
+# Elle test için üretilen örnek dosyalar (depoya girmez)
+/deneme/

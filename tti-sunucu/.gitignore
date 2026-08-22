@@ -1,0 +1,12 @@
+# Parola içerir — makineye özeldir, depoya girmez.
+.env
+
+# TLS özel anahtarı + sertifika — yalnızca sunucuda durur, ASLA depoya/zip'e girmez.
+certs/
+
+# Caddyfile/compose güncellemeden önce alınan yerel yedekler
+*.bak
+# Geliştirme makinesinde bind mount edilen yükleme kökleri (kullanıcı verisi)
+yerel-veri/
+# kur.sh'ın .env değiştirmeden önce aldığı kopya
+.env.oncesi-*

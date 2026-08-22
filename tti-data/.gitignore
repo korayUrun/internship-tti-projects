@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+backend/.env
+backend/backups/*
+!backend/backups/.gitkeep
+
+node_modules/
+dist/
+admin-panel/.env
+
+# ⚠️ 5 Kotlin/Android uygulamasının CANLI API anahtarları. Anahtarların otoritesi
+# veritabanıdır (data.dataset_permissions); bu dosya elde tutulan bir kopyadır.
+# Sunucuya giden transfer zip'inden de dışlanır (bkz. deploy/KURULUM.md).
+api_keys.txt
+
+# Geliştirme yığınının yerel yükleme kökü
+deploy/yukleme/
+
+*.log
+.DS_Store

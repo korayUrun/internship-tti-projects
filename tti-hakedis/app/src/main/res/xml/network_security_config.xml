@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Sürüm (release) yapılandırması: **düz HTTP kapalı**, yalnızca TLS.
+
+    Faz J / karar J1 "kurumsal VPN içinden düz HTTP" diyordu ve o dünyada tablet doğrudan
+    `http://10.x.x.x:8081`'e bağlanıyordu. O dünya kalktı: sunucuda uygulama `127.0.0.1:8081`'e
+    bağlı (docker-compose.yml) ve güvenlik duvarında 8081 açılmıyor — dışarıya açık tek kapı ters
+    vekilin 443'ü. Tablet artık `https://hakedis.<DOMAIN>` adresine bağlanıyor, dolayısıyla dosyanın
+    kendi notundaki "TLS geldiğinde cleartext kapatılacak" adımı burada uygulandı.
+
+    **Güven çapası `system` yeterli** ve öyle kalmalı: sunucunun sertifikası public bir CA'dan
+    geliyor (issuer `DigiCert Inc / RapidSSL TLS RSA CA G1`) ve DigiCert kökleri Android'in sistem
+    deposunda minSdk 26'dan çok önceden beri var. Bu yüzden ne MDM ile kök yüklemek ne de pinleme
+    gerekiyor; `<certificates src="user" />` **eklenmemeli** (kullanıcının kurduğu CA'ya güvenmek,
+    Android 7'den beri bilinçli olarak kapalı bir kapıdır).
+
+    ⚠️ Tek koşul sunucu tarafında: `certs/fullchain.pem` **ara sertifikayı da** içermeli. Kök
+    tablette var, ara CA yok — zincir eksik gönderilirse tarayıcı bazen tolere eder, Android
+    **etmez** ve el sıkışma düşer (CERT.md'deki `grep -c 'BEGIN CERTIFICATE'` kontrolü budur).
+
+    Geliştirme için ayrı yapılandırma: `app/src/debug/res/xml/network_security_config.xml`.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

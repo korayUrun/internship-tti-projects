@@ -1,0 +1,64 @@
+@sunucu = http://localhost:5148
+
+### Sağlık — kimlik gerektirmez, konteyner healthcheck'i de bunu çağırır
+GET {{sunucu}}/api/saglik
+Accept: application/json
+
+### Giriş (oturum çerezi döner)
+POST {{sunucu}}/api/oturum/giris
+Content-Type: application/json
+
+{ "kullaniciAdi": "ogeyve", "parola": "TTIrapor2026" }
+
+### Parola değiştir — ilk girişte ZORUNLU, yapılmadan veri uçları 403 döner
+POST {{sunucu}}/api/oturum/parola
+Content-Type: application/json
+
+{ "mevcutParola": "TTIrapor2026", "yeniParola": "yeni-parolam" }
+
+### Oturumdaki kullanıcı
+GET {{sunucu}}/api/oturum/ben
+
+### Talepler — yönetici hepsini, saha kullanıcısı yalnızca kendi kayıtlarını görür
+GET {{sunucu}}/api/kablo
+Accept: application/json
+
+### Yeni talep
+POST {{sunucu}}/api/kablo
+Content-Type: application/json
+
+{
+  "nosid": "mtc55169a.cable*ist-ist",
+  "sahaSehir": "Istanbul",
+  "projeGuzergah": "1-Açıkta Serili Kablolar",
+  "ekAraligi": "12-14",
+  "guzergahUzunlugu": 150,
+  "arizaRiski": "3 - Yüksek",
+  "konumALat": 41.0082,
+  "konumALon": 28.9784,
+  "ilkAciklama": "İlk saha kontrolü yapıldı."
+}
+
+### Statü güncelle (geçmiş satırı yazılır)
+PUT {{sunucu}}/api/kablo/1
+Content-Type: application/json
+
+{ "statu": "IN PROGRESS", "sonAciklama": "Ekip sahaya yönlendirildi." }
+
+### Açılır liste kaynakları — arayüz seçenekleri buradan üretir
+GET {{sunucu}}/api/lookup/riskler
+
+###
+GET {{sunucu}}/api/lookup/statuler
+
+###
+GET {{sunucu}}/api/lookup/kapsamlar
+
+### Kablo kataloğu araması (NOSID otomatik tamamlama)
+GET {{sunucu}}/api/lookup/katalog?ara=mtc551
+
+### Excel çıktısı — sunucu üretir
+GET {{sunucu}}/api/kablo/excel-indir
+
+### Sil
+DELETE {{sunucu}}/api/kablo/1

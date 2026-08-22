@@ -1,0 +1,32 @@
+# ============================================================================
+# /srv/kod/tti-sunucu/.env dosyasının SONUNA eklenir.
+# ⚠️ Mevcut satırlara DOKUNULMAZ — özellikle SURUM ve SURUM_RAPOR olduğu gibi kalır
+#    (hakediş ve rapor kaynağı bu turda değişmedi, yeniden derlenmeyecekler).
+# Oluşturuldu: 2026-08-19
+# ============================================================================
+
+SURUM_DATA=2026-08-19
+
+# --- Proje 3: TTI Merkezi Veri Yönetim Sistemi --------------------------------------------
+DATA_PORT=8083
+DATA_PANEL_PORT=8084
+DATA_DB_ADI=data
+
+# ⚠️ provizyon/03-data.sql'deki parolayla AYNI olmalı (hazır dosya: 03-data-HAZIR.sql).
+DATA_DB_PAROLA=VuqOMGHBxRqrzroI9kxtUlDOaWZS
+
+# Oturum imzalama anahtarı — makine üretti, kimse elle girmez.
+DATA_JWT_ANAHTARI=c8LawlHhmRniYazY1cWwv+8ICQDkLuzL8aMmG2Vd/eGICqDngG7TyMvb9v3UPai/
+
+# Panel yönetici hesabı. Hakediş ve rapor'daki 'admin' ile AYNI parola (kurumun mevcut kalıbı).
+# ⚠️ Teslim öncesi değiştirin. Değiştirme yolu: parolayı burada güncellemek TEK BAŞINA YETMEZ —
+#    açılışta kod yalnızca EKSİK kullanıcıyı ekler, var olanı asla ezmez:
+#      docker exec -i tti-db psql -U tti_hakedis -d data -c \
+#        "delete from data.admin_users where username='admin';"
+#      docker restart tti-data-server
+DATA_ADMIN_KULLANICI=admin
+DATA_ADMIN_PAROLA=TTI000000
+
+# Yüklenen Excel'ler + rollback JSON anlık görüntüleri — ASIL VERİ, kaybı geri alınamaz.
+# (dataset_records yalnızca AKTİF sürümü tutar; JSON'lar her önceki sürümün tek kopyasıdır.)
+DATA_YUKLEME_KOK=/srv/veri/tti-data/yukleme

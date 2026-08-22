@@ -1,0 +1,76 @@
+spring:
+  application:
+    name: tti-hakedis-server
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/tti}
+    username: ${DB_KULLANICI:tti_hakedis}
+    password: ${DB_PAROLA:}
+    hikari:
+      # Bağlantılar `hakedis` şemasında açılır. Şema adını URL yerine burada tutmak, üç servisin
+      # paylaştığı veritabanında şema ayrımının tek bir yerde tanımlı kalmasını sağlar.
+      schema: hakedis
+      # PostgreSQL bağlantı başına ayrı bir işletim sistemi SÜRECİ açar, bu yüzden sunucunun sert
+      # bir `max_connections` sınırı vardır ve bu sınır makinedeki TÜM projelerce paylaşılır.
+      # Bir servis havuzunu sınırsız bırakırsa bütçeyi tek başına tüketir ve diğer servisler
+      # "sorry, too many clients" ile düşer — hata da yanlış projenin log'una çıkar.
+      #
+      # Değer zaten HikariCP'nin varsayılanı; buraya AÇIKÇA yazılmasının nedeni bütçenin
+      # görünür olması: görünmeyen bir varsayılan, toplama dahil edilmiyor.
+      # Bütçe: Σ(havuz sınırları) + yedek ≤ max_connections − superuser_reserved
+      # Ayrıntı ve güncel dağılım: tti-sunucu/YENI-PROJE.md
+      maximum-pool-size: 10
+  servlet:
+    multipart:
+      # Fiyat listesi Excel'i (Faz E) ve EK1/EK2 dosyaları (Faz F) yüklenir. 95 satırlık bir fiyat
+      # listesi ~10 KB, tabletten çekilmiş bir saha fotoğrafı ~3-8 MB; sınır bol tutuldu ama sınırsız
+      # değil: sınırsız yükleme bellek ve disk açısından açık kapı bırakır. Aşıldığında 413 döner
+      # (HataYakalayici), sessizce kırpılmaz.
+      max-file-size: 10MB
+      max-request-size: 20MB
+  flyway:
+    enabled: true
+    # Şema ayrımı: aynı veritabanını üç servis paylaşıyor, bu servis yalnızca `hakedis` şemasına yazar.
+    schemas: hakedis
+    default-schema: hakedis
+    create-schemas: true
+
+server:
+  port: 8081
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        # SameSite=Strict, oturum cookie'sinin siteler arası isteklerde gönderilmesini engeller —
+        # CSRF token'ının yanında ikinci savunma katmanı. TLS geldiğinde (Faz K) `secure: true` eklenecek.
+        same-site: strict
+      timeout: 8h
+
+arsiv:
+  # Belge aynası kökü. Üretilen PDF/Excel buraya `bölge/yıl/tür/` ağacında kopyalanır (Faz G).
+  # Uygulamaya veya veritabanına ulaşılamadığında belgelere buradan erişilir.
+  kok: ${ARSIV_KOK:/arsiv}
+
+yukleme:
+  # Kullanıcının YÜKLEDİĞİ dosyaların (EK1/EK2/imza) kökü — arşivden AYRI tutulur.
+  # Arşiv, sunucunun ürettiği çıktının tek yönlü aynasıdır ve gerekirse yeniden üretilebilir;
+  # burası ise asıl veridir, kaybı geri alınamaz. Aynı ağaca karışmaları, arşivi temizleyen bir
+  # işlemin kullanıcı verisini de silmesi anlamına gelirdi.
+  kok: ${YUKLEME_KOK:/yukleme}
+
+cikti:
+  # PDF ve Excel çıktısındaki kullanıcıya görünen metinler. Mobilde `strings.xml` neyse, sunucuda
+  # burası odur (CLAUDE.md §13: hardcoded string yasağı sunucuda da geçerli). Varsayılanları
+  # `CiktiEtiketleri` taşır; buradaki değerler onları ezer, metin değişikliği derleme gerektirmez.
+  etiket:
+    marka-adi: "Türk Telekom International"
+    # Fizibilitenin miktar/tutar başlıkları: kaynak şablonda ön fizibilite sütunu yok, bu ikisi
+    # bize ait (Faz G kararı). Keşif ve hakediş kaynağın 8 sütununu aynı başlıklarla kullanır.
+    sutun-fizibilite-miktar: "Fizibilite Miktar"
+    sutun-fizibilite-tutar: "Fizibilite Tutar"
+    tur-fizibilite: "Ön Fizibilite"
+    tur-kesif: "1. Keşif"
+    tur-hakedis: "Hakediş"
+
+logging:
+  level:
+    tr.com.tti.hakedis: INFO

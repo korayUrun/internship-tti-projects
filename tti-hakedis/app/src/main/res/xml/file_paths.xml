@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Uygulama artık ince istemci: ek dosyalar sunucuda saklanıyor, cihazda kalıcı kopya yok.
+         Paylaşılan her şey geçicidir — kameradan çekilen görsel (temp/) ve sunucudan indirilen
+         PDF/Excel (indirilen/). file:// paylaşımı FileUriExposedException fırlatır (CLAUDE.md §12/2). -->
+    <cache-path
+        name="temp"
+        path="temp/" />
+    <cache-path
+        name="indirilen"
+        path="indirilen/" />
+</paths>

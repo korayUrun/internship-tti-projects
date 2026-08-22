@@ -1,0 +1,265 @@
+# Paylaşılan yığın — tüm projeler tek yerde.
+#
+# Bu dosya hiçbir PROJENİN deposuna ait değildir; makineye aittir. Projelerin kendi
+# `deploy/docker-compose.yml` dosyaları onları TEK BAŞINA geliştirirken kaldırır; sunucuda
+# çalışan tanım budur.
+#
+# Yeni proje eklemek: YENI-PROJE.md'deki sözleşmeyi karşıla, buraya bir servis bloğu ekle,
+# provizyon/ altına SQL'ini koy, yedek.sh ve dogrula.sh listelerine gir.
+
+name: tti
+
+services:
+  db:
+    image: postgres:17
+    container_name: tti-db
+    restart: unless-stopped
+    mem_limit: 512m
+    environment:
+      POSTGRES_DB: ${DB_ADI:-tti}
+      # ⚠️ BAKIM (superuser) hesabı — yalnızca veritabanını bootstrap eder, provizyon/yedek/elle psql
+      # bununla koşar. UYGULAMALAR bununla BAĞLANMAZ (superuser tüm sınırları atlar). Uygulama rolü
+      # ayrı ve ayrıcalıksızdır (aşağıda DB_KULLANICI, provizyon/01-tti.sql).
+      POSTGRES_USER: ${DB_BAKIM_KULLANICI:-tti_hakedis}
+      POSTGRES_PASSWORD: ${DB_BAKIM_PAROLA:?DB_BAKIM_PAROLA .env dosyasinda tanimli olmali}
+      TZ: Europe/Istanbul
+      # locale=C: sıralama ve karşılaştırma dile göre değişmesin (Türkçe locale tuzağı).
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      # ⚠️ Bu sayı makinedeki TÜM projelerce paylaşılır ve her bağlantı ayrı bir işletim sistemi
+      # süreci demektir. Değiştirmeden önce YENI-PROJE.md'deki havuz bütçesine bakın:
+      #     Σ(havuz sınırları) + yedek ≤ max_connections − superuser_reserved(3)
+      - -c
+      - max_connections=50
+    volumes:
+      # ⚠️ EXTERNAL: volume'ün ömrü bu compose dosyasından bağımsızdır.
+      # İki nedeni var:
+      #   1. `docker compose down -v` veritabanını SİLEMEZ.
+      #   2. Compose proje adı ya da klasörü değiştiğinde Docker yeni ve BOŞ bir volume
+      #      yaratmaz — eski kurulumdan geçerken veri "kaybolmuş" görünmez.
+      # İlk kurulumda bir kez: docker volume create tti_db_verisi
+      - tti_db_verisi:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"      # dışarı AÇILMAZ
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_BAKIM_KULLANICI:-tti_hakedis} -d ${DB_ADI:-tti}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # --- Proje 1: TTI Saha Hakediş ------------------------------------------------------------
+  # veritabanı `tti` · uygulama rolü `tti_uygulama` (AYRICALIKSIZ) · şema `hakedis` · havuz 10
+  tti-hakedis-server:
+    image: tti-hakedis-server:${SURUM:?SURUM .env dosyasinda tanimli olmali (or. 2026-08-11)}
+    # Multi-stage: imaj kaynaktan derlenir (jar+web imajın içinde). `docker compose build` çağırır.
+    # Bağlam sibling depo; imaj SURUM ile etiketlenir (geri dönüş için sabit kalır).
+    build:
+      context: ../tti-hakedis
+      dockerfile: deploy/Dockerfile
+    container_name: tti-hakedis-server
+    restart: unless-stopped
+    mem_limit: 900m               # JVM heap'i bunun %75'i kadar olur (-XX:MaxRAMPercentage=75)
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${DB_ADI:-tti}
+      # Uygulama AYRICALIKSIZ rolle bağlanır (superuser DEĞİL) — projeler arası sınır ancak böyle
+      # gerçek. `tti_uygulama`'yı provizyon/01-tti.sql DB_PAROLA ile oluşturur; iki değer aynı olmalı.
+      DB_KULLANICI: ${DB_KULLANICI:-tti_uygulama}
+      DB_PAROLA: ${DB_PAROLA:?DB_PAROLA .env dosyasinda tanimli olmali}
+      ARSIV_KOK: /arsiv
+      YUKLEME_KOK: /yukleme
+      SURUM: ${SURUM}             # /api/saglik bunu döner — çalışan sürüm dışarıdan görünsün
+      TZ: Europe/Istanbul
+    volumes:
+      # `:Z` SELinux etiketi (RHEL). Etiket olmadan konteyner yazamaz; uygulama açılır, sağlık
+      # kontrolü geçer, hata ancak ilk PDF üretiminde çıkar.
+      - ${TTI_ARSIV_KOK:?tanimli olmali}:/arsiv:Z
+      - ${TTI_YUKLEME_KOK:?tanimli olmali}:/yukleme:Z
+    ports:
+      # ⚠️ 127.0.0.1'e bağlı: dışarıya proxy (port 80) üzerinden domain adıyla erişilir. Localhost
+      # bağı, dogrula.sh'ın ve sunucudaki elle `curl`ün çalışması için duruyor; ağdan doğrudan
+      # 8081'e erişilmez. Güvenlik duvarında 8081 AÇILMAZ.
+      - "127.0.0.1:${TTI_PORT:-8081}:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/api/saglik || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  # --- Proje 2: TTIDataRapor ----------------------------------------------------------------
+  # veritabanı `rapor` · rol `rapor` · şema `rapor` · havuz 10
+  tti-rapor-server:
+    image: tti-rapor-server:${SURUM_RAPOR:?SURUM_RAPOR .env dosyasinda tanimli olmali}
+    # Multi-stage: imaj kaynaktan derlenir (publish imajın içinde). `docker compose build` çağırır.
+    build:
+      context: ../tti-rapor
+      dockerfile: deploy/Dockerfile
+    container_name: tti-rapor-server
+    restart: unless-stopped
+    mem_limit: 640m
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Varsayilan: "Host=db;Port=5432;Database=${RAPOR_DB_ADI:-rapor};Username=rapor;Password=${RAPOR_DB_PAROLA:?tanimli olmali};Search Path=rapor;Maximum Pool Size=10"
+      RAPOR_YUKLEME_KOK: /yukleme
+      SURUM: ${SURUM_RAPOR}
+      TZ: Europe/Istanbul
+    volumes:
+      - ${RAPOR_YUKLEME_KOK:?tanimli olmali}:/yukleme:Z
+    ports:
+      # ⚠️ 127.0.0.1'e bağlı — TTI ile aynı gerekçe (yukarı bak). Dışarıya proxy üzerinden
+      # rapor.<DOMAIN> ile erişilir; güvenlik duvarında 8082 AÇILMAZ.
+      - "127.0.0.1:${RAPOR_PORT:-8082}:8080"
+    healthcheck:
+      # wget DEĞİL curl: `mcr.microsoft.com/dotnet/aspnet` taban imajında ikisi de yoktur,
+      # projenin Dockerfile'ı bunun için curl kuruyor.
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/api/saglik || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  # --- Proje 3: TTI Merkezi Veri Yönetim Sistemi (backend) ----------------------------------
+  # veritabanı `data` · rol `data` (AYRICALIKSIZ) · şema `data` · havuz 10
+  # Excel yüklenir, 5 Kotlin/Android uygulaması X-API-Key ile REST'ten veri çeker.
+  tti-data-server:
+    image: tti-data-server:${SURUM_DATA:?SURUM_DATA .env dosyasinda tanimli olmali}
+    # Multi-stage: imaj kaynaktan derlenir (venv imajın içinde). `docker compose build` çağırır.
+    # Bağlam sibling deponun KÖKÜ (backend/ değil): tek .dockerignore iki imajı da yönetiyor.
+    build:
+      context: ../tti-data
+      dockerfile: deploy/Dockerfile.backend
+    container_name: tti-data-server
+    restart: unless-stopped
+    mem_limit: 768m               # pandas Excel'i tamamen belleğe açar
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Uygulama AYRICALIKSIZ rolle bağlanır (superuser DEĞİL). `data` rolünü
+      # provizyon/03-data.sql DATA_DB_PAROLA ile oluşturur; iki değer aynı olmalı.
+      DATABASE_URL: "postgresql+psycopg://data:${DATA_DB_PAROLA:?DATA_DB_PAROLA .env dosyasinda tanimli olmali}@db:5432/${DATA_DB_ADI:-data}"
+      DB_SCHEMA: data
+      # ⚠️ Havuz tavanı 5+5=10 — BEYAN EDİLMİŞTİR (.env.example bütçe tablosu). SQLAlchemy
+      # varsayılanı 5+10=15'tir ve beyan edilmezse bütçeyi sessizce aşıp DİĞER projeleri düşürür.
+      DB_POOL_SIZE: "5"
+      DB_MAX_OVERFLOW: "5"
+      JWT_SECRET_KEY: ${DATA_JWT_ANAHTARI:?tanimli olmali}
+      ADMIN_USERNAME: ${DATA_ADMIN_KULLANICI:?tanimli olmali}
+      ADMIN_PASSWORD: ${DATA_ADMIN_PAROLA:?tanimli olmali}
+      YUKLEME_KOK: /yukleme
+      CORS_ALLOWED_ORIGINS: ""    # panel AYNI origin'den geliyor (Caddy yola göre ayırıyor)
+      SURUM: ${SURUM_DATA}        # /api/saglik bunu döner — çalışan sürüm dışarıdan görünsün
+      TZ: Europe/Istanbul
+    volumes:
+      # `:Z` SELinux etiketi (RHEL). Etiket olmadan uygulama açılır, sağlık kontrolü geçer ve
+      # hata ancak ilk Excel yüklemesinde çıkar. /api/saglik'teki yuklemeYazilabilir bunu erken
+      # yakalar. Burada YÜKLENEN Excel'ler + rollback JSON anlık görüntüleri durur — ASIL VERİ.
+      - ${DATA_YUKLEME_KOK:?tanimli olmali}:/yukleme:Z
+    ports:
+      # ⚠️ 127.0.0.1'e bağlı — diğerleriyle aynı gerekçe. Dışarıya proxy üzerinden
+      # data.<DOMAIN> ile erişilir; güvenlik duvarında 8083 AÇILMAZ.
+      - "127.0.0.1:${DATA_PORT:-8083}:8000"
+    healthcheck:
+      # wget DEĞİL curl: `python:3.12-slim` taban imajında ikisi de yoktur, projenin
+      # Dockerfile'ı bunun için curl kuruyor.
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/saglik || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 12
+      start_period: 90s           # açılışta `alembic upgrade head` koşuyor
+
+  # --- Proje 3: yönetim paneli (React SPA, nginx) -------------------------------------------
+  # Veritabanı YOK, /yukleme YOK → yedek.sh listelerine GİRMEZ. Caddy `data.<DOMAIN>` altında
+  # /api, /admin, /docs dışındaki her yolu buraya yönlendirir.
+  tti-data-panel:
+    image: tti-data-panel:${SURUM_DATA:?SURUM_DATA .env dosyasinda tanimli olmali}
+    build:
+      context: ../tti-data
+      dockerfile: deploy/Dockerfile.panel
+    container_name: tti-data-panel
+    restart: unless-stopped
+    mem_limit: 128m
+    depends_on:
+      - tti-data-server
+    environment:
+      TZ: Europe/Istanbul
+    ports:
+      # ⚠️ 127.0.0.1'e bağlı. İşlevsel olarak gerekmiyor (Caddy compose ağından ulaşıyor) ama
+      # "panel mi bozuk, Caddy'nin yol ayrımı mı" sorusunu docker exec olmadan cevaplatıyor.
+      - "127.0.0.1:${DATA_PANEL_PORT:-8084}:8080"
+    healthcheck:
+      # nginx:alpine'de busybox wget var, curl yok.
+      # ⚠️ localhost DEĞİL 127.0.0.1: konteyner içinde `localhost` önce IPv6 ::1'e çözülür,
+      # nginx ise yalnızca IPv4 dinler (listen 8080). curl diğer adrese geri düşer, busybox
+      # wget DÜŞMEZ — "connection refused" verir ve konteyner ayaktayken unhealthy görünür.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  # --- Platform: Ters vekil (reverse proxy) -------------------------------------------------
+  # Kullanıcı IP:port değil domain adı yazsın diye. Host başlığına göre doğru konteynere
+  # yönlendirir (Caddyfile). Dışarı açık TEK kapı burasıdır (port 80); app'ler 127.0.0.1'de.
+  # ⚠️ İsim→IP çözümlemesi Docker'ın işi DEĞİL — kurumsal DNS A kaydı (IT). Bkz. KURULUM.md.
+  proxy:
+    image: caddy:2                 # Apache 2.0 — lisans kısıtı yok
+    container_name: tti-proxy
+    restart: unless-stopped
+    mem_limit: 128m
+    depends_on:
+      - tti-hakedis-server
+      - tti-rapor-server
+      - tti-data-server
+      - tti-data-panel
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN .env dosyasinda tanimli olmali (or. tti.local)}
+    ports:
+      - "80:80"
+      - "443:443"                # HTTPS — Caddyfile'daki `tls` + certs/ ile (2026-08-13 eklendi)
+    volumes:
+      # `:Z` SELinux etiketi (RHEL) — etiketsiz konteyner Caddyfile'ı okuyamaz.
+      - ./Caddyfile:/etc/caddy/Caddyfile:Z,ro   # bind mount → :Z (RHEL SELinux)
+      # TLS sertifikası + özel anahtar (fullchain.pem, privkey.pem). Yalnızca sunucuda mevcut;
+      # git/zip'e girmez (.gitignore + ServerDeploy.md §7). Salt okunur.
+      - ./certs:/etc/caddy/certs:Z,ro           # bind mount → :Z (RHEL SELinux)
+      - tti_caddy_verisi:/data                   # isimli volume → :Z YOK (Docker kendi etiketler)
+
+  # --- Platform: Portainer — IT için Docker yönetim arayüzü ---------------------------------
+  # ⚠️ Docker soketini bağlar = host'ta KÖK yetkisine denk güç. Erişim ayrı porttan (9443) ve
+  # güvenlik duvarında YALNIZCA IT subnet'ine açılır (KURULUM.md). Business değil, CE (ücretsiz).
+  portainer:
+    image: portainer/portainer-ce:2.21.5   # zlib lisansı — ücretsiz
+    container_name: tti-portainer
+    restart: unless-stopped
+    mem_limit: 256m
+    # ⚠️ RHEL Enforcing'de docker.sock bağı engellenebilir. Portainer arayüzü konteynerleri
+    # listeleyemiyorsa (ausearch -m avc) aşağıdaki satırı açın — yalnızca bu konteynerin SELinux
+    # etiket sınırını kaldırır (`setenforce 0` DEĞİL). Bkz. KURULUM.md.
+    # security_opt: ["label:disable"]
+    ports:
+      - "9443:9443"              # Portainer'ın kendi TLS'i (self-signed)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:z   # bind mount → :z (RHEL SELinux)
+      - tti_portainer_verisi:/data                     # isimli volume → :Z YOK
+
+volumes:
+  tti_db_verisi:
+    external: true
+    # Var olan bir kurulumdan geçiyorsanız eski volume'ün adını DB_VOLUME ile verin.
+    # (Geliştirme makinesinde `deploy/` klasöründen kalkmış bir yığında: deploy_tti_db_verisi)
+    name: ${DB_VOLUME:-tti_db_verisi}
+
+  # Proxy'nin durumu (HTTP'de neredeyse boş) — yeniden üretilebilir, veri değil, yedeklenmez.
+  tti_caddy_verisi:
+  # Portainer'ın kendi ayarı/kullanıcıları — UYGULAMA VERİSİ DEĞİL. Kaybı = Portainer'ı yeniden
+  # kurmak (admin parolasını yeniden koymak); yedek.sh'ın kritik yoluna alınmaz.
+  tti_portainer_verisi:

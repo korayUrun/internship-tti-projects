@@ -1,0 +1,10 @@
+<!-- Alt sekme ikonu — Hesap. Elle yazılmış vektör (bkz. ic_projects.xml). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,12c2.76,0 5,-2.24 5,-5s-2.24,-5 -5,-5 -5,2.24 -5,5 2.24,5 5,5zM12,14.5c-3.34,0 -10,1.67 -10,5V22h20v-2.5c0,-3.33 -6.66,-5 -10,-5z" />
+</vector>

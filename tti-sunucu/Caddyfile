@@ -1,0 +1,66 @@
+# Ters vekil (reverse proxy) — kullanıcı IP:port değil domain adı yazar.
+#
+# Caddy, gelen isteğin `Host` başlığına bakar ve doğru konteynere yönlendirir. Konteynerlere
+# compose ağı üzerinden SERVİS ADIYLA ulaşır (tti-hakedis-server / tti-rapor-server), o yüzden
+# 8081/8082'nin dışarı yayımlanmasına gerek yoktur — dışarı açık kapılar 80 (yönlendirme) ve 443'tür.
+#
+# ⚠️ Bu dosya "isim → IP" çözümlemesi YAPMAZ. `hakedis.<domain>` adının sunucunun IP'sine gitmesi
+# kurumsal DNS'in işidir (IT bir A kaydı ekler). Docker yalnızca Host'a göre içeride yönlendirir.
+#
+# {$DOMAIN} .env'deki DOMAIN değişkeninden gelir (compose `environment:` ile geçirir).
+#
+# --- TLS/HTTPS (2026-08-13'te eklendi) -----------------------------------------------------
+# Sertifika kurumsal CA'dan (DigiCert/RapidSSL) geldi; wildcard `*.turktelekomint.com` hem
+# hakedis. hem rapor. alt alan adlarını kapsar. Caddy'ye ELLE veriyoruz (aşağıdaki `tls`), o yüzden
+# `auto_https off` kalıyor — Caddy kendi sertifika üretmeye (ACME) çalışmasın (kapalı ağda gürültü).
+# Manuel `tls` yönergesi auto_https'ten bağımsız çalışır. Sertifika/anahtar sunucuda `certs/` altında
+# (git/zip'e girmez — bkz. .gitignore ve ServerDeploy.md §7). Sertifika son geçerlilik: 2027-02-27.
+
+{
+	auto_https off
+}
+
+# HTTP → HTTPS yönlendirme (80'e gelen 443'e taşınır; eski http bağlantıları kırılmaz).
+# ⚠️ 443 kullanıcı ağından erişilebilir olmalı; değilse yönlendirme ölü uca düşer (ServerDeploy.md §"443").
+http://hakedis.{$DOMAIN}, http://rapor.{$DOMAIN}, http://data.{$DOMAIN} {
+	redir https://{host}{uri} permanent
+}
+
+# --- Proje 1: TTI Saha Hakediş → :8081 (jar içinde web arayüzü gömülü) --------------------
+https://hakedis.{$DOMAIN} {
+	tls /etc/caddy/certs/fullchain.pem /etc/caddy/certs/privkey.pem
+	reverse_proxy tti-hakedis-server:8081
+}
+
+# --- Proje 2: TTIDataRapor → :8080 (.NET, ASPNETCORE_URLS=http://+:8080) -------------------
+https://rapor.{$DOMAIN} {
+	tls /etc/caddy/certs/fullchain.pem /etc/caddy/certs/privkey.pem
+	reverse_proxy tti-rapor-server:8080
+}
+
+# --- Proje 3: TTI Merkezi Veri — TEK alan adı, YOLA göre iki konteyner ---------------------
+# Panel ve API aynı origin'de: panel API'ye göreli yolla gider (imaja gömülü IP/hostname yok)
+# ve CORS tamamen ortadan kalkar. Kullanıcı tek adres yazar, Android uygulamaları aynı adresin
+# /api kısmını kullanır.
+#
+# ⚠️ `handle` kullanılıyor, çıplak `reverse_proxy` + matcher değil: `handle` blokları BİRBİRİNİ
+# DIŞLAR ve yukarıdan aşağı değerlendirilir. İki çıplak `reverse_proxy` yazılsaydı hangisinin
+# önce çalışacağı Caddy'nin kendi yönerge sıralamasına kalırdı.
+#
+# ⚠️ Panele /admin/... ya da /api/... diye bir İSTEMCİ yolu EKLENMEZ — aşağıdaki matcher onu
+# yakalar ve SPA'ya hiç ulaşmaz. Bugünkü SPA yolları: /login, /datasets, /datasets/new,
+# /datasets/:ad/upload, /datasets/:ad/history — çakışma yok.
+https://data.{$DOMAIN} {
+	tls /etc/caddy/certs/fullchain.pem /etc/caddy/certs/privkey.pem
+
+	@arka path /api/* /admin/* /docs /docs/* /openapi.json /redoc /redoc/* /static/* /health
+	handle @arka {
+		reverse_proxy tti-data-server:8000
+	}
+
+	# Geri kalan her şey SPA. `try_files ... /index.html` nginx tarafındadır
+	# (tti-data/deploy/nginx.conf), yani /login, /datasets/... doğrudan yenilendiğinde de çalışır.
+	handle {
+		reverse_proxy tti-data-panel:8080
+	}
+}

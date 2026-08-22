@@ -1,0 +1,32 @@
+# Multi-stage build: bağlam = TÜM kaynak (imaj içinde derlenir). Aşağıdakiler HARİÇ —
+# ya derleme çıktısı (yeniden üretilir), ya sır, ya da build'i bozan şeyler.
+
+.git
+.gitignore
+
+# Derleme çıktıları / önbellek — imaj içinde yeniden üretilir
+**/build
+.gradle
+**/.gradle
+.kotlin
+**/.kotlin
+web/node_modules
+web/dist
+
+# ⚠️ KRİTİK: local.properties bağlama girerse settings.gradle :app (Android) modülünü dahil eder
+# ve build imajında Android SDK olmadığı için derleme çöker. Sunucu tarafı mobile bağımlı değil.
+local.properties
+
+# Sunucu build'ine gerekmeyenler (bağlamı küçültür)
+app
+deneme
+docs
+*.md
+
+# Sırlar ve yerel ayarlar
+.env
+.env.*
+deploy/.env
+
+# Sistem
+**/.DS_Store

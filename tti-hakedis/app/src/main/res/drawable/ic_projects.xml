@@ -1,0 +1,16 @@
+<!--
+  Alt sekme ikonu — Projeler.
+
+  Elle yazılmış vektör: `material-icons-core` sınıf yolunda yok (Material3 1.4.0 geçişli
+  getirmiyor) ve yeni bağımlılık eklemiyoruz (CLAUDE.md §13). `fillColor` beyaz;
+  `Icon(painter, tint = …)` rengi veriyor.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M4,13h6v7H4zM4,4h6v7H4zM14,4h6v4h-6zM14,11h6v9h-6z" />
+</vector>

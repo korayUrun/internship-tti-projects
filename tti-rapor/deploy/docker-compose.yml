@@ -1,0 +1,73 @@
+# Geliştirme yığını: bu projeyi TEK BAŞINA ayağa kaldırır.
+#
+# ⚠️ Üretimde bu dosya KULLANILMAZ. Sunucuda TTI ve TTIDataRapor aynı PostgreSQL örneğini
+# paylaşır; oradaki compose dosyası iki projeyi birden tanıdığı için hiçbir projenin deposuna
+# ait değildir, sunucuya özeldir (bkz. tti-hakedis/deploy/RedHatKurulum.md §5).
+#
+# Buradaki `db` servisi, üretimdeki paylaşılan veritabanının birebir taklididir: aynı imaj,
+# aynı locale, aynı şema/rol ayrımı. Amaç, geliştirme makinesinde çalışan bir şeyin sunucuda
+# şema yüzünden bozulmamasıdır.
+
+services:
+  db:
+    image: postgres:17
+    container_name: tti-rapor-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_ADI:-tti}
+      POSTGRES_USER: ${DB_KULLANICI:-tti_hakedis}
+      POSTGRES_PASSWORD: ${DB_PAROLA:-gelistirme}
+      TZ: Europe/Istanbul
+      # locale=C: sıralama ve karşılaştırma dile göre değişmesin (Türkçe locale tuzağı).
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+    volumes:
+      - rapor_db_verisi:/var/lib/postgresql/data
+      # Yalnızca GELİŞTİRMEDE çalışır: initdb betikleri veritabanı ilk kez oluşturulurken
+      # koşar, volume'de veri varsa hiç koşmaz. Sunucuda bu adım ELLE yapılır.
+      - ./veritabani-kur.sql:/docker-entrypoint-initdb.d/10-veritabani-kur.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_KULLANICI:-tti_hakedis} -d ${DB_ADI:-tti}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  tti-rapor-server:
+    # Multi-stage: imaj kaynaktan derlenir (SDK build imajının içinde). Önceden `dotnet publish`
+    # GEREKMEZ — `docker compose up -d --build` her şeyi yapar. Bağlam repo kökü (`..`).
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: tti-rapor-server:${SURUM:-dev}
+    container_name: tti-rapor-server
+    restart: unless-stopped
+    mem_limit: 640m
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Kendi VERİTABANI (`rapor`), TTI'nin `tti` veritabanı değil. `Maximum Pool Size`:
+      # max_connections tüm projelerce paylaşılan sert bir sınırdır; Npgsql'in varsayılanı 100'dür
+      # ve bu, bütçeyi tek başına tüketip DİĞER servisleri düşürür.
+      ConnectionStrings__Varsayilan: "Host=db;Port=5432;Database=${RAPOR_DB_ADI:-rapor};Username=rapor;Password=${RAPOR_DB_PAROLA:-rapor};Search Path=rapor;Maximum Pool Size=10"
+      SURUM: ${SURUM:-gelistirme}
+      TZ: Europe/Istanbul
+    volumes:
+      # Saha fotoğrafları. `:Z` SELinux etiketi RHEL/Fedora için: orada SELinux varsayılan olarak
+      # `enforcing` ve etiket olmadan konteyner bu klasöre yazamaz — uygulama açılır, sağlık
+      # kontrolü geçer, ama ilk fotoğraf yüklemesinde hata verir. SELinux olmayan sistemlerde
+      # (macOS, Ubuntu) seçenek ayrıştırılır ve hiçbir şey yapmaz.
+      - ${YUKLEME_KOK:-./yukleme}:/yukleme:Z
+    ports:
+      - "${SUNUCU_PORT:-8082}:8080"
+    healthcheck:
+      # wget DEĞİL curl: aspnet taban imajında wget yok (bkz. deploy/Dockerfile).
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/api/saglik || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+volumes:
+  rapor_db_verisi:

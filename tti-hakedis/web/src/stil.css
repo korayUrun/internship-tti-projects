@@ -1,0 +1,2051 @@
+/*
+ * Renk paleti ve ölçüler CLAUDE.md §8'den birebir alındı: beyaz + mavi, yüksek kontrast, büyük
+ * dokunma hedefi. Aynı arayüz hem bilgisayarda hem tablette kullanılacak; 48px minimum dokunma
+ * alanı ve 16px taban font ikisi için de geçerli. Karanlık tema kapsam dışı.
+ */
+:root {
+  --birincil: #0b5fff;
+  --birincil-koyu: #0842b8;
+  --birincil-yumusak: #e8f0ff;
+  --yuzey: #ffffff;
+  --arkaplan: #f5f8fc;
+  --cerceve: #d6e0ee;
+  --metin: #0f1b2d;
+  --metin-soluk: #5b6b80;
+  --basari: #1b8a5a;
+  --hata: #c62828;
+  --pasif-zemin: #edf1f6;
+
+  --dokunma: 48px;
+  --radius: 8px;
+}
+
+/*
+ * §8 paleti DEĞİL — aşağıdakiler bugün stil dosyasında zaten dağınık hâlde duran değerlerin
+ * adlandırılmış hâli. Tek bir değer değişmedi; amaç aynı sayının beş yerde tekrarlanmaması.
+ * §8'in "aynı adlarla" kuralı yukarıdaki blok için geçerli; bunlar türev yüzey tonları ve ölçüler.
+ */
+:root {
+  --bosluk-1: 4px;
+  --bosluk-2: 8px;
+  --bosluk-3: 12px;
+  --bosluk-4: 16px;
+  --bosluk-5: 24px;
+  --bosluk-6: 32px;
+
+  --golge-1: 0 1px 2px rgba(15, 27, 45, 0.06), 0 1px 3px rgba(15, 27, 45, 0.04);
+  --golge-2: 0 6px 24px rgba(15, 27, 45, 0.08);
+  --golge-3: 0 12px 40px rgba(15, 27, 45, 0.25);
+
+  /* Katman sırası tek yerde: toplam şeridi < üst şerit < katman < gönderim onayı. */
+  --kat-toplam: 5;
+  --kat-serit: 10;
+  --kat-katman: 20;
+  --kat-onay: 100;
+
+  --uyari-zemin: #fff7e6;
+  --uyari-cerceve: #b47500;
+  --uyari-metin: #7a4f00;
+  --hata-zemin: #fdecec;
+  --basari-zemin: #e8f6ef;
+  --basari-metin: #10603e;
+
+  /* Koyu gezinme yüzeyi — web kenar çubuğu, mobilde alt sekme çubuğu (Düzeltme Turu 4). */
+  --kenar-zemin: #0f1b2d; /* --metin ile aynı değer: lacivert zaten metin laciverdi */
+  --kenar-cizgi: #22314a;
+  --kenar-vurgu: #1b2a42; /* hover */
+  --kenar-etkin: #20365c; /* etkin öğe hapı */
+  --kenar-metin: #e6edf7; /* 14.6:1 */
+  --kenar-metin-soluk: #8da0bc; /* 6.5:1 */
+
+  --yan-genislik: 264px;
+
+  /* Kimlikler ve tutarlar: sabit genişlikli rakam, hizalı sütun. Dosya indirilmez, sistem yığını. */
+  --mono: ui-monospace, SFMono-Regular, Menlo, 'Liberation Mono', monospace;
+}
+
+/*
+ * Dört anlamsal durum ailesi (CLAUDE.md §8). HEPSİ TAKMA ADDIR — tek bir yeni renk yok. Aynı anlamın
+ * iki yerde iki tona ayrışmasını bu engelliyor: rozet, kartın sol vurgu şeridi ve stepper aynı
+ * jetondan besleniyor.
+ *
+ * ⚠️ Aile yalnızca RENGİ seçer. Durum metni her zaman sunucudan gelir (`durumMetni`).
+ */
+:root {
+  --durum-acik-zemin: var(--birincil-yumusak);
+  --durum-acik-metin: var(--birincil-koyu);
+  --durum-acik-cizgi: var(--birincil);
+
+  --durum-isleniyor-zemin: var(--uyari-zemin);
+  --durum-isleniyor-metin: var(--uyari-metin);
+  --durum-isleniyor-cizgi: var(--uyari-cerceve);
+
+  --durum-tamam-zemin: var(--basari-zemin);
+  --durum-tamam-metin: var(--basari-metin);
+  --durum-tamam-cizgi: var(--basari);
+
+  --durum-iptal-zemin: var(--hata-zemin);
+  --durum-iptal-metin: var(--hata);
+  --durum-iptal-cizgi: var(--hata);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--arkaplan);
+  color: var(--metin);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+h1 {
+  font-size: 24px;
+  margin: 0 0 16px;
+}
+
+h2 {
+  font-size: 20px;
+  margin: 0 0 12px;
+}
+
+/*
+ * h3 kart içi alt başlıktır, ekran başlığı değil — §8'in "başlık 20–24" aralığına çekilseydi h2 ile
+ * ayırt edilemez olurdu. 18px bilinçli istisna; taban 16px'in üstünde kalıyor.
+ */
+h3 {
+  font-size: 18px;
+  margin: 0 0 var(--bosluk-2);
+}
+
+h4 {
+  font-size: 16px;
+  margin: 0 0 var(--bosluk-2);
+}
+
+a {
+  color: var(--birincil);
+}
+
+/* --- Yerleşim ------------------------------------------------------------ */
+
+/* ---------------------------------------------------------------------------
+   Kabuk: sürekli açık kenar çubuğu + beyaz üst çubuk (Düzeltme Turu 4).
+
+   Çubuk **her zaman açıktır** (kullanıcı kararı). Dar ekranda yalnızca `--yan-genislik` daralır ve
+   etiketler gizlenir — çekmece, aç/kapa düğmesi ve ikinci bileşen ağacı yok. §8'in yasakladığı
+   "genişliğe göre dallanan ikinci yerleşim" bu değil: tek ızgara, tek JSX ağacı, daralan bir sütun.
+   --------------------------------------------------------------------------- */
+.uygulama {
+  display: grid;
+  grid-template-columns: var(--yan-genislik) 1fr;
+  min-height: 100dvh;
+}
+
+.yan-bar {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bosluk-2);
+  padding: var(--bosluk-5) var(--bosluk-3);
+  background: var(--kenar-zemin);
+  color: var(--kenar-metin);
+}
+
+.yan-marka {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--bosluk-3) var(--bosluk-4);
+  border-bottom: 1px solid var(--kenar-cizgi);
+}
+
+.yan-marka-ad {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--kenar-metin);
+  white-space: nowrap;
+}
+
+.yan-marka-alt {
+  font-size: 15px;
+  color: var(--kenar-metin-soluk);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.yan-baslik {
+  padding: var(--bosluk-2) var(--bosluk-3) 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--kenar-metin-soluk);
+}
+
+.yan-liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bosluk-1);
+}
+
+.yan-bag {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-3);
+  min-height: var(--dokunma);
+  padding: 0 var(--bosluk-3);
+  border-radius: var(--radius);
+  color: var(--kenar-metin);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.yan-bag:hover {
+  background: var(--kenar-vurgu);
+}
+
+/* Etkin öğe: hap + sol vurgu. Ayrım yalnızca renge dayanmasın diye ikisi birlikte. */
+.yan-bag.etkin {
+  background: var(--kenar-etkin);
+  color: #fff;
+  box-shadow: inset 3px 0 0 var(--birincil);
+}
+
+.yan-nokta {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--kenar-metin-soluk);
+}
+
+.yan-bag.etkin .yan-nokta {
+  background: var(--birincil);
+}
+
+.yan-bag-etiket {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bosluk-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.yan-sayi {
+  font-weight: 600;
+  color: var(--kenar-metin-soluk);
+}
+
+.yan-bosluk {
+  flex: 1;
+}
+
+.yan-kullanici {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-3);
+  padding: var(--bosluk-3);
+  border-top: 1px solid var(--kenar-cizgi);
+  flex-wrap: wrap;
+}
+
+.yan-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--birincil);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.yan-kullanici-metin {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.yan-kullanici-ad {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.yan-kullanici-rol {
+  font-size: 15px;
+  color: var(--kenar-metin-soluk);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.yan-cikis {
+  color: var(--kenar-metin);
+}
+
+.yan-cikis:hover:not(:disabled) {
+  background: var(--kenar-vurgu);
+}
+
+.ana {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Üst çubuk artık gezinme taşımıyor: konum izi ve arama. */
+.ust-serit {
+  background: var(--yuzey);
+  border-bottom: 1px solid var(--cerceve);
+  padding: var(--bosluk-2) var(--bosluk-4);
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-4);
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: var(--kat-serit);
+}
+
+.kirinti ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  flex-wrap: wrap;
+  color: var(--metin-soluk);
+}
+
+.kirinti li + li::before {
+  content: '›';
+  margin-right: var(--bosluk-2);
+  color: var(--metin-soluk);
+}
+
+.kirinti a {
+  text-decoration: none;
+}
+
+.kirinti [aria-current='page'] {
+  color: var(--metin);
+  font-weight: 600;
+}
+
+.arama {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  min-width: 260px;
+  flex: 0 1 420px;
+}
+
+.arama input {
+  width: 100%;
+  height: var(--dokunma);
+  padding-left: 44px;
+  border-radius: 999px;
+  background: var(--arkaplan);
+}
+
+.arama-simge {
+  position: absolute;
+  left: 14px;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--metin-soluk);
+  stroke-width: 2;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+/* Ekran okuyucuya görünür, göze görünmez. */
+.gizli-metin {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.govde {
+  padding: var(--bosluk-5);
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/*
+ * Dar ekran: çubuk yine AÇIK, yalnızca ikon rayına daralır ve etiketler gizlenir.
+ * Çekmece yok, aç/kapa düğmesi yok (CLAUDE.md §8 web istisnası).
+ */
+@media (max-width: 900px) {
+  :root {
+    --yan-genislik: 76px;
+  }
+
+  .yan-bag-etiket,
+  .yan-marka-alt,
+  .yan-baslik,
+  .yan-kullanici-metin {
+    display: none;
+  }
+
+  .yan-marka-ad {
+    font-size: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .yan-bag,
+  .yan-kullanici,
+  .yan-marka {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .yan-nokta {
+    width: 10px;
+    height: 10px;
+  }
+
+  .arama {
+    min-width: 0;
+  }
+}
+
+.kart {
+  background: var(--yuzey);
+  border: 1px solid var(--cerceve);
+  border-radius: var(--radius);
+  padding: var(--bosluk-4);
+  margin-bottom: var(--bosluk-4);
+  /* Hafif kabartı: kartlar arkaplandan ayrılsın; kenarlık yerine değil, yanında. */
+  box-shadow: var(--golge-1);
+}
+
+.satir {
+  display: flex;
+  gap: var(--bosluk-3);
+  flex-wrap: wrap;
+  /* Alanları ÜST kenardan hizala: bir alanın altında `.alan-hata` (kırmızı uyarı) belirince o alan
+     uzuyor; alt-hizada (flex-end) komşu alanın girişi yukarı kayıyordu (Ek Aralığı ile Route aynı
+     satırda hizasız görünüyordu). Etiketler tek satır olduğu için üst-hiza girişleri hep aynı
+     seviyede tutar; hata metni yalnızca kendi alanının altında aşağı doğru büyür. */
+  align-items: flex-start;
+}
+
+/*
+ * Ekran başlığı: sol tarafta başlık (+ alt başlık), sağda eylemler. Altı ekranda aynı satır içi
+ * `style` nesnesiyle elle kuruluyordu.
+ */
+.sayfa-basligi {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--bosluk-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--bosluk-4);
+}
+
+.sayfa-basligi h1 {
+  margin: 0;
+}
+
+/*
+ * Giriş ekranı: markanın tek göründüğü yer, o yüzden logo karttan **dışarıda** ve ortada duruyor —
+ * kartın içine sıkıştırılsa form alanlarıyla yarışırdı.
+ *
+ * Palet §8'den: sayfa zemini `--arkaplan`, kart beyaz. Ek renk tanımlanmadı; logo zaten kurumsal
+ * renkleri taşıyor ve arkasına renkli bir blok koymak onu bastırırdı.
+ */
+.giris-sayfasi {
+  max-width: 420px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 28px;
+  padding: 32px 16px;
+}
+
+.giris-marka {
+  text-align: center;
+}
+
+/* Logo saydam zeminli; genişlik sınırlı, yükseklik oranla — sıkışıp bozulmasın. */
+.giris-marka img {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+}
+
+.giris-kart {
+  margin-bottom: 0;
+  padding: 28px;
+  box-shadow: var(--golge-2);
+}
+
+.giris-kart h1 {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.giris-alt-baslik {
+  margin: 0 0 20px;
+  color: var(--metin-soluk);
+  font-size: 15px;
+}
+
+/* --- Form alanları -------------------------------------------------------- */
+
+.alan {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  min-width: 200px;
+  flex: 1;
+}
+
+.alan > label {
+  font-size: 15px;
+  color: var(--metin-soluk);
+  font-weight: 600;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: var(--metin);
+  background: var(--yuzey);
+  border: 1px solid var(--cerceve);
+  border-radius: var(--radius);
+  padding: 0 12px;
+  height: 56px;
+}
+
+textarea {
+  height: auto;
+  padding: 12px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--birincil);
+  outline-offset: -2px;
+}
+
+/*
+ * Düğme ve bağlantılar için odak halkası. Gezinme tamamen düğme/bağlantı üzerinden yürüdüğü hâlde
+ * hiç tanımlanmamıştı: klavyeyle gezen kullanıcı nerede olduğunu göremiyordu. `:focus` değil
+ * `:focus-visible` — fareyle basılan düğmenin etrafında halka bırakmaz.
+ */
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--birincil);
+  outline-offset: 2px;
+}
+
+input:disabled,
+select:disabled {
+  background: var(--pasif-zemin);
+  color: var(--metin-soluk);
+}
+
+/*
+ * Doldurulması zorunlu ya da geçersiz olan alanın kendisi işaretlenir. Hatanın yalnızca sayfanın
+ * üstünde tek bir şerit olarak çıkması, 95 satırlık poz tablosunda hangi hücrenin bozuk olduğunu
+ * bulunamaz hâle getiriyordu.
+ */
+input.gecersiz,
+input.gecersiz:focus {
+  border-color: var(--hata);
+  border-width: 2px;
+  outline-color: var(--hata);
+}
+
+/* Gönderim için eksik olan bölüm (miktar / güzergâh dosyası) kart düzeyinde işaretlenir. */
+.kart.eksik {
+  border-color: var(--hata);
+  border-width: 2px;
+}
+
+.alan-hata {
+  color: var(--hata);
+  font-size: 15px;
+}
+
+/* Zorunlu alan işareti (etiketteki `*`) — Yeni Tesis'te ülke/şehir/adres. */
+.zorunlu-im {
+  color: var(--hata);
+  font-weight: 700;
+}
+
+/* --- Butonlar ------------------------------------------------------------- */
+
+button {
+  font: inherit;
+  font-weight: 600;
+  min-height: var(--dokunma);
+  padding: 0 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--birincil);
+  background: var(--birincil);
+  color: var(--yuzey);
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--birincil-koyu);
+  border-color: var(--birincil-koyu);
+}
+
+button:disabled {
+  background: var(--pasif-zemin);
+  border-color: var(--cerceve);
+  color: var(--metin-soluk);
+  cursor: not-allowed;
+}
+
+button.ikincil {
+  background: var(--yuzey);
+  color: var(--birincil);
+}
+
+button.ikincil:hover:not(:disabled) {
+  background: var(--birincil-yumusak);
+  color: var(--birincil-koyu);
+}
+
+button.sade {
+  background: transparent;
+  border-color: transparent;
+  color: var(--birincil);
+  padding: 0 8px;
+}
+
+button.sade:hover:not(:disabled) {
+  background: var(--birincil-yumusak);
+}
+
+button.tehlike {
+  background: var(--yuzey);
+  border-color: var(--hata);
+  color: var(--hata);
+}
+
+button.tehlike:hover:not(:disabled) {
+  background: var(--hata-zemin);
+}
+
+/* --- Şeritler (bilgi / hata / uyarı) ------------------------------------- */
+
+.serit {
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border: 1px solid;
+}
+
+.serit.hata {
+  background: var(--hata-zemin);
+  border-color: var(--hata);
+  color: var(--hata);
+}
+
+.serit.uyari {
+  background: var(--uyari-zemin);
+  border-color: var(--uyari-cerceve);
+  color: var(--uyari-metin);
+}
+
+.serit.basari {
+  background: var(--basari-zemin);
+  border-color: var(--basari);
+  color: var(--basari-metin);
+}
+
+.serit.bilgi {
+  background: var(--birincil-yumusak);
+  border-color: var(--birincil);
+  color: var(--birincil-koyu);
+}
+
+/* --- Tablolar ------------------------------------------------------------- */
+
+.tablo-sarici {
+  overflow-x: auto;
+}
+
+/*
+ * Poz tablosu kendi yüksekliğinde kaydırılır: yalnızca burada tablo 95 satıra çıkıyor ve `th`'nin
+ * yapışkanlığı ancak sınırlı yükseklikli bir sarıcıda iş görüyor. Alt toplam şeridiyle iyi
+ * geçiniyor — biri sayfanın altına, diğeri tablonun üstüne çapalı.
+ */
+.poz-sarici {
+  max-height: 60vh;
+  min-height: 320px;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--cerceve);
+  vertical-align: middle;
+}
+
+/*
+ * Yapışkan başlık, tablonun **kendi kaydırma yüzeyine** çapalanır: her tablo `.tablo-sarici`
+ * (`overflow-x: auto`) içinde ve o div en yakın kaydırma yüzeyi. Yüksekliği sınırlı olmayan
+ * sarıcıda başlık hiç ayrılmaz — kural yalnızca `.poz-sarici` gibi yüksekliği sınırlı yerlerde iş
+ * görür. Üst şeritle çakışma bu yüzden oluşmuyor.
+ */
+th {
+  background: var(--birincil-yumusak);
+  color: var(--metin);
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+td.sayi,
+th.sayi {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Uzun tek satırlık değerler (kable konum yolu 240 karaktere çıkıyor) satırı şişirmesin. */
+td.kirpik {
+  max-width: 360px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Belge numarası: satırın tamamı yerine tek bir gerçek bağlantı. */
+.belge-no {
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.belge-no:hover {
+  text-decoration: underline;
+}
+
+/* --- Belge tablosu -------------------------------------------------------- */
+
+.belge-tablosu td {
+  vertical-align: top;
+  padding-top: var(--bosluk-3);
+  padding-bottom: var(--bosluk-3);
+}
+
+/* Belge numarasının altındaki proje kimliği — sütun sayısını ondan yediye indiren satır. */
+.belge-kimlik {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  flex-wrap: wrap;
+  margin-top: var(--bosluk-1);
+  color: var(--metin-soluk);
+}
+
+.mono {
+  font-family: var(--mono);
+}
+
+/* Belge türü: nötr çip. Durumun rengiyle yarışmasın diye renksiz. */
+.tur-cipi {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius);
+  background: var(--pasif-zemin);
+  color: var(--metin-soluk);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/*
+ * Durum: renkli nokta + metin. Yedi sütunlu bir tabloda dolgulu rozetler satırı ağırlaştırıyordu;
+ * renk ailesi rozetle aynı jetondan geliyor, ikisi ayrışamaz.
+ */
+.durum-nokta-alani {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.durum-nokta {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.durum-nokta-alani.acik {
+  color: var(--durum-acik-metin);
+}
+.durum-nokta-alani.acik .durum-nokta {
+  background: var(--durum-acik-cizgi);
+}
+
+.durum-nokta-alani.isleniyor {
+  color: var(--durum-isleniyor-metin);
+}
+.durum-nokta-alani.isleniyor .durum-nokta {
+  background: var(--durum-isleniyor-cizgi);
+}
+
+.durum-nokta-alani.tamam {
+  color: var(--durum-tamam-metin);
+}
+.durum-nokta-alani.tamam .durum-nokta {
+  background: var(--durum-tamam-cizgi);
+}
+
+.durum-nokta-alani.iptal {
+  color: var(--durum-iptal-metin);
+}
+.durum-nokta-alani.iptal .durum-nokta {
+  background: var(--durum-iptal-cizgi);
+}
+
+.sorumlu {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+}
+
+.sorumlu-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--birincil-yumusak);
+  color: var(--birincil-koyu);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.sorumlu-metin {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* --- Satır içi indirme menüsü --------------------------------------------- */
+
+.indirme {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bosluk-1);
+  align-items: flex-start;
+}
+
+/*
+ * Açılır menü `<details>` ile: açık/kapalı durumu ve klavye erişimi tarayıcıdan geliyor.
+ * ⚠️ Dışarı tıklayınca ve Escape ile kapanma `<details>`'te YOK — onu `useAcilirMenu` ekliyor.
+ */
+.indirme-menu {
+  position: relative;
+}
+
+.indirme-menu > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  min-height: var(--dokunma);
+  padding: 0 var(--bosluk-4);
+  border: 1px solid var(--birincil);
+  border-radius: var(--radius);
+  background: var(--yuzey);
+  color: var(--birincil);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  white-space: nowrap;
+}
+
+/* Tarayıcının varsayılan üçgeni gizlenir; yerine kendi okumuz. */
+.indirme-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.indirme-menu > summary::after {
+  content: '⌄';
+  font-size: 18px;
+  line-height: 1;
+}
+
+.indirme-menu > summary:hover {
+  background: var(--birincil-yumusak);
+}
+
+.indirme-secenekler {
+  position: absolute;
+  right: 0;
+  z-index: var(--kat-serit);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 180px;
+  margin-top: var(--bosluk-1);
+  padding: var(--bosluk-1);
+  background: var(--yuzey);
+  border: 1px solid var(--cerceve);
+  border-radius: var(--radius);
+  box-shadow: var(--golge-2);
+}
+
+.indirme-secenekler button {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+/*
+ * Son satırda menü YUKARI açılır.
+ *
+ * `.tablo-sarici`'nın `overflow-x: auto`'su bir kırpma bağlamı yaratıyor (şartnameye göre bir eksen
+ * `visible` değilse diğeri de `auto` olur), dolayısıyla son satırdan aşağı açılan menü kartın
+ * altında kesiliyordu. Belge tablosunun yedi sütunu dar ekranda gerçekten kaydırma istiyor, bu
+ * yüzden sarıcı kaldırılamıyor — menü yön değiştiriyor.
+ */
+tbody tr:last-child .indirme-secenekler,
+tbody tr:last-child .satir-menu-secenekler {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: var(--bosluk-1);
+}
+
+/* İndirme başarısız: sebep `title`'da, tık yeniden dener. */
+.indirme-hatasi {
+  color: var(--hata);
+}
+
+.indirme-hatasi:hover:not(:disabled) {
+  background: var(--hata-zemin);
+}
+
+tr.tiklanabilir {
+  cursor: pointer;
+}
+
+tr.tiklanabilir:hover {
+  background: var(--birincil-yumusak);
+}
+
+/* Grup satırı: dolgulu ve kalın; giriş alanı taşımaz (CLAUDE.md §4/1). */
+tr.grup td {
+  background: var(--birincil-yumusak);
+  font-weight: 700;
+}
+
+/* Hesaplanan sütunlar dokunulamaz olduğu anlaşılsın diye zeminli. */
+td.hesaplanan {
+  background: var(--pasif-zemin);
+  color: var(--metin-soluk);
+}
+
+td input.miktar {
+  height: var(--dokunma);
+  width: 120px;
+  text-align: right;
+}
+
+.rozet {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  /* 14px değil: §8 "küçük font yasak" diyor ve tablo hücresi tabanı 15px. */
+  font-size: 15px;
+  font-weight: 600;
+  background: var(--pasif-zemin);
+  color: var(--metin-soluk);
+  white-space: nowrap;
+}
+
+.rozet.acik {
+  background: var(--durum-acik-zemin);
+  color: var(--durum-acik-metin);
+}
+
+.rozet.isleniyor {
+  background: var(--durum-isleniyor-zemin);
+  color: var(--durum-isleniyor-metin);
+}
+
+/* `.aktif` başka bir eksen: sözleşme/kullanıcı aktif-pasif. Aynı yeşili paylaşıyor ama
+   `durumAilesi`'nden gelmiyor — silinmemeli. */
+.rozet.tamam,
+.rozet.aktif {
+  background: var(--durum-tamam-zemin);
+  color: var(--durum-tamam-metin);
+}
+
+.rozet.iptal {
+  background: var(--durum-iptal-zemin);
+  color: var(--durum-iptal-metin);
+}
+
+/* --- Toplam şeridi (ekranın altına sabit) -------------------------------- */
+
+.toplam-serit {
+  position: sticky;
+  bottom: 0;
+  background: var(--yuzey);
+  border-top: 2px solid var(--birincil);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 18px;
+  font-weight: 700;
+  z-index: var(--kat-toplam);
+}
+
+.toplam-serit .tutar {
+  font-size: 22px;
+  color: var(--birincil-koyu);
+}
+
+.gonder-alani {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-4);
+  flex-wrap: wrap;
+}
+
+/* Şeridin içindeki not kalın değil: toplam ve düğmeyle yarışmamalı. */
+.toplam-serit .dugme-notu {
+  font-weight: 400;
+}
+
+/* ---------------------------------------------------------------------------
+   Belge ekranının numaralı adımları (Düzeltme Turu 3).
+
+   Sıra (sözleşme → miktar → dosyalar) daha önce yalnızca kod yorumlarında numaralıydı; kullanıcı
+   eşit ağırlıkta dört kart görüyordu.
+   --------------------------------------------------------------------------- */
+.adim-basligi {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--bosluk-3);
+  margin-bottom: var(--bosluk-3);
+}
+
+.adim-metin {
+  flex: 1;
+  min-width: 0;
+}
+
+.adim-metin h2 {
+  margin: 0;
+}
+
+.adim-sag {
+  margin-left: auto;
+  flex: none;
+}
+
+.adim-kayit {
+  font-size: 15px;
+  color: var(--metin-soluk);
+}
+
+/* Numara kutusu — `IsListesi`'ndeki `.asama-nokta` ile aynı görsel dil, adım ölçeğinde. */
+.adim-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: 2px solid var(--cerceve);
+  border-radius: var(--radius);
+  font-weight: 700;
+  color: var(--metin-soluk);
+  background: var(--yuzey);
+}
+
+.adim-no.tamam {
+  border-color: var(--basari);
+  background: var(--basari-zemin);
+  color: var(--basari);
+}
+
+.adim-no.eksik {
+  border-color: var(--hata);
+  background: var(--hata-zemin);
+  color: var(--hata);
+}
+
+.adim-no.kapali {
+  background: var(--pasif-zemin);
+}
+
+/* Adımı tamamlamak için ne eksik — adımın kendi başlığında, alt şeritte değil. */
+.adim-eksikleri {
+  margin: var(--bosluk-1) 0 0;
+  padding-left: 20px;
+  font-size: 15px;
+  color: var(--hata);
+}
+
+/* --- Gönderim onayı ------------------------------------------------------- */
+
+/*
+ * Gönderme geri alınamaz bir adım (D2). Durum rozetinin sessizce değişmesi, kullanıcının "gitti mi?"
+ * diye tereddüt etmesine yol açıyordu; bu katman işlemin bittiğini tartışmasız gösterir ve kendisi
+ * kapanır.
+ */
+.gonderim-katmani {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 27, 45, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--kat-onay);
+}
+
+.gonderim-kutusu {
+  position: relative;
+  background: var(--yuzey);
+  border-radius: 16px;
+  padding: 32px 40px;
+  text-align: center;
+  max-width: 460px;
+  box-shadow: var(--golge-3);
+}
+
+.gonderim-kutusu .kapat-dugmesi {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-height: var(--dokunma);
+  min-width: var(--dokunma);
+  padding: 0;
+  font-size: 20px;
+  color: var(--metin-soluk);
+}
+
+.gonderim-kutusu .mesaj {
+  font-size: 18px;
+  font-weight: 600;
+  margin-top: 16px;
+}
+
+.gonderim-kutusu .alt-mesaj {
+  color: var(--metin-soluk);
+  font-size: 15px;
+  margin-top: 8px;
+}
+
+/* Dönen halka — istek sürerken. */
+.donen-halka {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto;
+  border: 5px solid var(--birincil-yumusak);
+  border-top-color: var(--birincil);
+  border-radius: 50%;
+  animation: don 0.8s linear infinite;
+}
+
+/* Satır içi kullanım (yükleniyor metninin yanında, arama kutusunun altında). */
+.donen-halka.kucuk-halka {
+  width: 24px;
+  height: 24px;
+  border-width: 3px;
+  margin: 0;
+  flex: none;
+}
+
+@keyframes don {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Tik — istek bittiğinde halkanın yerini alır. */
+.tik-halka {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: var(--basari);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: buyu 0.32s ease-out;
+}
+
+.tik-halka svg {
+  width: 34px;
+  height: 34px;
+  stroke: #fff;
+  stroke-width: 4;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: ciz 0.4s 0.12s ease-out forwards;
+}
+
+@keyframes buyu {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+}
+
+@keyframes ciz {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Hareket azaltma tercihi açıksa animasyonlar kapanır; bilgi yine görünür. */
+@media (prefers-reduced-motion: reduce) {
+  .donen-halka,
+  .tik-halka,
+  .tik-halka svg {
+    animation: none;
+  }
+
+  .tik-halka svg {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* --- Küçük yardımcılar ---------------------------------------------------- */
+
+.soluk {
+  color: var(--metin-soluk);
+}
+
+.kucuk {
+  font-size: 15px;
+}
+
+.bosluk-ust {
+  margin-top: 16px;
+}
+
+.dugme-grubu {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.yukleniyor {
+  padding: var(--bosluk-5);
+  color: var(--metin-soluk);
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-3);
+}
+
+.liste-bos {
+  padding: var(--bosluk-5);
+  text-align: center;
+  color: var(--metin-soluk);
+}
+
+.liste-bos-baslik {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--metin);
+  margin-bottom: var(--bosluk-1);
+}
+
+.liste-bos .dugme-grubu {
+  justify-content: center;
+}
+
+/* Kart içinde "burada bir şey yok" notu — dosya listeleri, önizleme, arama sonucu. */
+.bos-not {
+  color: var(--metin-soluk);
+  font-size: 15px;
+}
+
+/* Kartın asıl değeri (ör. belgenin sözleşme adı) — etiketinden ayrışsın. */
+.vurgulu-deger {
+  font-weight: 700;
+  font-size: 17px;
+}
+
+/*
+ * Yıkıcı bir işlemin kartı/katmanı. Satır içi `style={{ borderColor: 'var(--hata)' }}` üç yerde
+ * tekrarlanıyordu.
+ */
+.kart.yikici {
+  border-color: var(--hata);
+}
+
+/*
+ * "Bu düğme neden kapalı" notu. Bilinçli olarak **nötr** renkte: alan bazlı kırmızı hata metniyle
+ * karışmasın. Kullanıcı daha hiçbir şey yapmadan kırmızı görmemeli, ama eksiğin ne olduğunu
+ * ilk render'dan itibaren okuyabilmeli.
+ */
+.dugme-notu {
+  color: var(--metin-soluk);
+  font-size: 15px;
+}
+
+.dosya-listesi {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+
+.dosya-listesi li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--cerceve);
+  flex-wrap: wrap;
+}
+
+.dosya-listesi .ad {
+  flex: 1;
+  min-width: 200px;
+  word-break: break-all;
+}
+
+/* Dosya seçici de en az bir dokunma hedefi kadar yüksek olmalı. */
+input[type='file'] {
+  padding: 12px;
+  height: auto;
+}
+
+/* ---------------------------------------------------------------------------
+   Proje kartı (Düzeltme Turu 4).
+
+   Kapalı hâlde: kimlik satırı + tanımlayıcı satırı + aşama rayı. Açıldığında üç aşama satırı ve
+   yönetici işlemleri gelir. Ayrı bir "Proje Detayı" ekranı **yok**; genişleme yerinde.
+
+   ~~`--is-durum: 230px` / `--is-islem: 290px` sabit genişlikleri~~ **kalktı**. Tek işleri, aşama
+   satırındaki rozetin başlıktaki "Durum" sütununun altına düşmesiydi; ray o hizalama ihtiyacını
+   tümden ortadan kaldırdı (başlık ve aşama satırları artık aynı anda görünmüyor). Beraberinde
+   `@media (max-width: 1100px)` dalı da gitti.
+   --------------------------------------------------------------------------- */
+.is-karti {
+  position: relative;
+  padding-left: var(--bosluk-5);
+  overflow: hidden;
+}
+
+/* Sol vurgu şeridi: durumu kartın kenarından, metne bakmadan okutur. */
+.is-karti::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+
+.is-karti.acik::before {
+  background: var(--durum-acik-cizgi);
+}
+
+.is-karti.isleniyor::before {
+  background: var(--durum-isleniyor-cizgi);
+}
+
+.is-karti.tamam::before {
+  background: var(--durum-tamam-cizgi);
+}
+
+.is-karti.iptal::before {
+  background: var(--durum-iptal-cizgi);
+}
+
+.is-ust {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-4);
+  flex-wrap: wrap;
+}
+
+.is-kimlik {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-3);
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Kimlikler tek aralıklı: rakam sütunları hizalanır, gözle karşılaştırma kolaylaşır. */
+.is-sp {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.is-sp.iptal {
+  text-decoration: line-through;
+  color: var(--metin-soluk);
+}
+
+.is-bolge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bosluk-1);
+  color: var(--metin-soluk);
+}
+
+.konum-simge {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  flex: none;
+}
+
+.is-sag {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-3);
+  flex: none;
+}
+
+/*
+ * Tutar **proje toplamı değil**, son aşamanın tutarı — bu yüzden aşama adıyla birlikte basılıyor.
+ * İstemcide toplamak yasak (CLAUDE.md §13) ve sunucu proje toplamı vermiyor.
+ */
+.is-tutar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: var(--mono);
+  font-size: 18px;
+}
+
+.is-tutar-etiket {
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--metin-soluk);
+}
+
+.is-ac {
+  min-width: var(--dokunma);
+  padding: 0;
+}
+
+.chevron-simge {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.15s ease;
+}
+
+.is-ac.acik .chevron-simge {
+  transform: rotate(180deg);
+}
+
+.is-alt {
+  display: flex;
+  align-items: baseline;
+  gap: var(--bosluk-2) var(--bosluk-5);
+  flex-wrap: wrap;
+  margin-top: var(--bosluk-2);
+}
+
+/*
+ * Etiket + değer. Etiket soluk ama **küçük değil** (§8: küçük font yasak) — ayrım renk ve kalınlıkla
+ * kuruluyor, boyutla değil.
+ */
+.etiketli {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--bosluk-2);
+  min-width: 0;
+}
+
+.deger-etiket {
+  color: var(--metin-soluk);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/*
+ * İki nokta işaretle basılıyor, metne yazılmıyor: aynı sözcükler başka yerlerde form alanı etiketi
+ * (`<label>`) olarak da geçiyor ve orada iki nokta yanlış olurdu. Tek kural, tek yer.
+ */
+.deger-etiket::after,
+.asama-ozet-etiket::after {
+  content: ':';
+}
+
+.etiketli .deger {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.etiketli .deger.mono {
+  font-family: var(--mono);
+}
+
+.is-sp-alani {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--bosluk-2);
+}
+
+.is-hareket {
+  margin-left: auto;
+}
+
+/* --- Aşama rayı ----------------------------------------------------------- */
+
+/* Yönetici durum-değişikliği günlüğü — eylem satırının altında tam genişlik, en yeni üstte. */
+.durum-gecmisi-liste {
+  margin-top: var(--bosluk-3);
+  padding-top: var(--bosluk-3);
+  border-top: 1px solid var(--cerceve);
+  display: flex;
+  flex-direction: column;
+  gap: var(--bosluk-2);
+}
+
+.durum-gecmisi-satir {
+  border-left: 3px solid var(--birincil);
+  padding: var(--bosluk-1) var(--bosluk-3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.asama-rayi {
+  list-style: none;
+  margin: var(--bosluk-4) 0 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.asama-adim {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  min-width: 0;
+}
+
+/* Son adım dışındakiler bağlayıcıyı taşıdığı için kalan yeri paylaşır. */
+.asama-adim:not(:last-child) {
+  flex: 1;
+}
+
+.asama-rayi-ad {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.asama-adim.bekleyen .asama-rayi-ad {
+  color: var(--metin-soluk);
+  font-weight: 400;
+}
+
+/* Bağlayıcı **önceki** adım tamamsa yeşil — "buraya kadar bitti" demek. */
+.asama-baglayici {
+  flex: 1;
+  height: 2px;
+  min-width: 24px;
+  margin: 0 var(--bosluk-2);
+  background: var(--cerceve);
+}
+
+.asama-baglayici.tamam {
+  background: var(--durum-tamam-cizgi);
+}
+
+/* Ray düğümü ve aşama satırındaki işaret aynı görsel dili paylaşır. */
+.asama-nokta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid var(--cerceve);
+  background: var(--yuzey);
+}
+
+.asama-nokta.tamam {
+  border-color: var(--durum-tamam-cizgi);
+  background: var(--durum-tamam-cizgi);
+}
+
+/* Etkin adım: kalın halka + ortada dolu nokta. Rozetteki amberle aynı renk. */
+.asama-nokta.etkin {
+  border-width: 3px;
+  border-color: var(--durum-isleniyor-cizgi);
+  box-shadow: inset 0 0 0 3px var(--yuzey), inset 0 0 0 9px var(--durum-isleniyor-cizgi);
+}
+
+.tik-simge {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: var(--yuzey);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* --- Açılan bölge --------------------------------------------------------- */
+
+.is-ayrinti {
+  margin-top: var(--bosluk-4);
+  border-top: 1px solid var(--cerceve);
+}
+
+.asama-satiri {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-4);
+  padding: var(--bosluk-3) 0;
+  border-bottom: 1px solid var(--cerceve);
+  flex-wrap: wrap;
+}
+
+.asama-satiri:last-child {
+  border-bottom: none;
+}
+
+.asama-icerik {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bosluk-2) var(--bosluk-4);
+  flex: 1;
+  min-width: 0;
+}
+
+.asama-ad {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  flex: none;
+  min-width: 170px;
+}
+
+.asama-ozet {
+  display: flex;
+  gap: var(--bosluk-1) 20px;
+  flex-wrap: wrap;
+  font-size: 15px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Kapalı bir düğmenin nedeni — aşama satırında, düğmenin kendisinde değil. */
+.asama-not {
+  flex-basis: 100%;
+  font-size: 15px;
+  color: var(--metin-soluk);
+}
+
+.asama-ozet-etiket {
+  color: var(--metin-soluk);
+  font-weight: 600;
+}
+
+.asama-durum {
+  flex: none;
+}
+
+.asama-dugmeler {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--bosluk-2);
+  flex: none;
+}
+
+.is-ayrinti .is-islem {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--bosluk-2);
+  margin-top: var(--bosluk-3);
+  padding-right: var(--bosluk-3);
+}
+
+/* --- Süzgeç satırı -------------------------------------------------------- */
+
+.suzgec-satiri {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--bosluk-4);
+}
+
+/* Hap biçimli açılır liste — kendi etiketini seçili değerle gösterir. */
+.suzgec-hap select {
+  height: var(--dokunma);
+  border-radius: 999px;
+  background: var(--yuzey);
+  font-weight: 600;
+}
+
+.suzgec-cipi {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bosluk-1);
+  min-height: 36px;
+  padding: 0 var(--bosluk-2) 0 var(--bosluk-3);
+  border: 1px solid var(--birincil);
+  border-radius: 999px;
+  background: var(--birincil-yumusak);
+  color: var(--birincil-koyu);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.cip-kaldir {
+  min-height: 28px;
+  min-width: 28px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--birincil-koyu);
+}
+
+.suzgec-sayi {
+  margin-left: auto;
+  color: var(--metin-soluk);
+}
+
+/* --- Sekme grubu (Tümü · Aktif · Pasif) ----------------------------------- */
+
+.sekme-grubu {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-1);
+  padding: var(--bosluk-1);
+  border: 1px solid var(--cerceve);
+  border-radius: 999px;
+  background: var(--yuzey);
+}
+
+.sekme-dugme {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  min-height: 40px;
+  padding: 0 var(--bosluk-4);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--metin-soluk);
+}
+
+.sekme-dugme:hover:not(:disabled) {
+  background: var(--arkaplan);
+  border-color: transparent;
+  color: var(--metin);
+}
+
+/* Etkin sekme: kenarlık + renk birlikte — ayrım yalnızca renge dayanmasın. */
+.sekme-dugme.etkin {
+  background: var(--yuzey);
+  border-color: var(--birincil);
+  color: var(--birincil-koyu);
+}
+
+.sekme-sayi {
+  color: var(--metin-soluk);
+  font-weight: 400;
+}
+
+.sekme-dugme.etkin .sekme-sayi {
+  color: var(--birincil);
+}
+
+.sablon-dugme {
+  margin-left: auto;
+}
+
+/* --- Satır işlem sütunu ---------------------------------------------------- */
+
+/*
+ * `width: 1%` + `nowrap`: sütun içeriği kadar daralır ve içindekiler asla alt satıra düşmez.
+ * Bunsuz düğme ile ⋮ satırdan satıra bir yan yana bir alt alta çiziliyordu — kalan genişlik
+ * soldaki metnin uzunluğuna göre değiştiği için görünüm satır başına değişiyordu.
+ */
+.satir-islem-sutunu {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.satir-islem {
+  display: flex;
+  align-items: center;
+  gap: var(--bosluk-2);
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+/* --- Satır menüsü (⋮) ------------------------------------------------------ */
+
+.satir-menu {
+  position: relative;
+}
+
+.satir-menu > summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--dokunma);
+  min-height: var(--dokunma);
+  border-radius: var(--radius);
+  color: var(--metin-soluk);
+  font-size: 20px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.satir-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.satir-menu > summary:hover {
+  background: var(--arkaplan);
+}
+
+.satir-menu-secenekler {
+  position: absolute;
+  right: 0;
+  z-index: var(--kat-serit);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 220px;
+  margin-top: var(--bosluk-1);
+  padding: var(--bosluk-1);
+  background: var(--yuzey);
+  border: 1px solid var(--cerceve);
+  border-radius: var(--radius);
+  box-shadow: var(--golge-2);
+}
+
+.satir-menu-secenekler button {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+/* Menü içindeki yıkıcı seçenek: dolgulu `.tehlike` bir listede fazla ağır durur. */
+.tehlike-metin {
+  color: var(--hata);
+}
+
+.tehlike-metin:hover:not(:disabled) {
+  background: var(--hata-zemin);
+}
+
+/* --- Kablo envanteri (Faz U) ---------------------------------------------- */
+
+/* Yürürlükteki sürümün etiket/değer çiftleri. Çiftlerin kendisi `.etiketli`; burası sarma kuralı. */
+.envanter-ozet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bosluk-2) 28px;
+}
+
+/*
+ * Bölge dağılımı. "Doğru dosyayı mı yükledim" sorusunu satır sayısından iyi cevaplar: İzmir'in
+ * kablosu bir anda sıfırlanmışsa dosya eksiktir ve bu tek bakışta görünür.
+ */
+.dagilim {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bosluk-2);
+}
+
+.dagilim-oge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--bosluk-2);
+  padding: 6px 12px;
+  background: var(--birincil-yumusak);
+  border-radius: var(--radius);
+  color: var(--birincil-koyu);
+}
+
+/* --- Sürükle-bırak yükleme alanı ------------------------------------------ */
+
+/* Kesikli çerçeve üstteki metne ve alttaki "Önizle" düğmesine yapışmasın diye kendi boşluğu var. */
+.birak-alani {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--bosluk-2);
+  margin: var(--bosluk-4) 0 var(--bosluk-5);
+  padding: var(--bosluk-6) var(--bosluk-4);
+  border: 2px dashed var(--cerceve);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.birak-alani.uzerinde {
+  border-color: var(--birincil);
+  background: var(--birincil-yumusak);
+}
+
+.birak-baslik {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* Geniş katman: poz listesi 95 satıra çıkıyor, 520px'lik kutuya sığmıyor. */
+.katman-kutu.genis {
+  max-width: 900px;
+}
+
+.miktar-excel {
+  margin-bottom: 12px;
+}
+
+/* Sözleşme seçici katmanı — `IslemOnayi` ile aynı örtü düzeni. */
+.katman {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 27, 45, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: var(--kat-katman);
+}
+
+.katman-kutu {
+  max-width: 520px;
+  width: 100%;
+  margin: 0;
+  /*
+    ⚠️ Yükseklik sınırı ve kaydırma ZORUNLU. Örtü `position: fixed` + `align-items: center` olduğu
+    için ekrandan uzun bir kutu **iki uçtan birden** taşar ve sayfa kaydırması olmadığı için üst
+    kısmına (başlık, ilk alanlar, kapatma düğmesi) hiçbir şekilde ulaşılamaz.
+    Kablo formu 18 alan taşıyor; bu sınır olmadan form fiilen kullanılamaz hâle geliyordu.
+  */
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+/* --- Satır içi formlar (Faz V): sözleşmeye kalem ekleme, kablo düzenleme -----------------------
+   Ayrı bir katman açmak yerine tablonun içinde bir satır: yönetici kalemi göreceği yerde ekliyor.
+   `flex-wrap` dar ekranda alt alta iniyor — ikinci bir yerleşim yazılmıyor (§8). */
+.satir-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.satir-form input,
+.satir-form select {
+  flex: 0 1 140px;
+  min-width: 120px;
+}
+
+.satir-form .genis-alan {
+  flex: 1 1 260px;
+}
+
+.poz-ekleme > td {
+  background: var(--birincil-yumusak);
+}
+
+/* Grup satırındaki "+ kalem ekle" düğmesi başlıktan ayrılsın. */
+tr.grup button.sade {
+  margin-left: 12px;
+  font-weight: 400;
+}
+
+/* İade edilmiş aşama: bölge sorumlusunun yapacak işi. Rozet durumu söylüyor, bu şerit nedeni. */
+.asama-iade {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--hata-yumusak);
+  color: var(--hata);
+}
+
+/* Kablo formunun iki ucu yan yana; dar ekranda alt alta iner (tek ızgara, dallanan yerleşim yok). */
+.uc-izgara {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+}
+
+.uc-izgara h4 {
+  margin: 0 0 8px;
+}
+
+/* Kablosuz projede elle uç girişi (Faz W): kapalıyken sayfa uzamasın diye `<details>` içinde. */
+.uc-girisi {
+  margin-top: 12px;
+}
+
+.uc-girisi > summary {
+  cursor: pointer;
+  color: var(--birincil);
+  padding: 8px 0;
+}

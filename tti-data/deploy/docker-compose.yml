@@ -1,0 +1,101 @@
+# Geliştirme yığını: bu projeyi TEK BAŞINA ayağa kaldırır.
+#
+# ⚠️ ÜRETİMDE BU DOSYA KULLANILMAZ. Sunucuda TTI Hakediş, TTIDataRapor ve bu proje aynı
+# PostgreSQL örneğini ve aynı ters vekili paylaşır; oradaki compose dosyası üç projeyi birden
+# tanıdığı için hiçbir projenin deposuna ait değildir, makineye aittir:
+# `tti-sunucu/docker-compose.yml`. Buradaki tanım ondan KASITLI olarak ayrıdır ve onunla
+# senkron tutulması gerekmez — tek amacı geliştiricinin makinesinde çalışmaktır.
+#
+# `name:` verilmesinin sebebi: proje adı varsayılan olarak KLASÖR adından (`deploy`) türer ve
+# aynı klasör adını kullanan diğer projelerle çakışırdı.
+
+name: tti-data
+
+services:
+  db:
+    # Üretimdeki paylaşımlı örnekle AYNI ana sürüm (postgres:17). Geliştirmede 16 kullanmak,
+    # yalnızca üretimde ortaya çıkan sürüm farkı hatalarına kapı açar.
+    image: postgres:17
+    container_name: tti-data-db
+    restart: unless-stopped
+    mem_limit: 512m
+    environment:
+      POSTGRES_DB: gelistirme
+      POSTGRES_USER: bakim
+      POSTGRES_PASSWORD: bakim
+      TZ: Europe/Istanbul
+      # locale=C: sıralama ve karşılaştırma dile göre değişmesin (Türkçe locale tuzağı).
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+    volumes:
+      - data_db_verisi:/var/lib/postgresql/data
+      - ./veritabani-kur.sql:/docker-entrypoint-initdb.d/01-data.sql:ro
+    ports:
+      - "127.0.0.1:${DEV_DB_PORT:-5442}:5432"   # dışarı AÇILMAZ
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bakim -d gelistirme"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  tti-data-server:
+    image: tti-data-server:${SURUM:-dev}
+    build:
+      # Bağlam depo kökü (bir üst klasör): tek .dockerignore iki imajı da yönetiyor.
+      context: ..
+      dockerfile: deploy/Dockerfile.backend
+    container_name: tti-data-server
+    restart: unless-stopped
+    mem_limit: 768m
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql+psycopg://data:data@db:5432/data"
+      DB_SCHEMA: data
+      DB_POOL_SIZE: "5"
+      DB_MAX_OVERFLOW: "5"
+      JWT_SECRET_KEY: gelistirme-anahtari-uretimde-kullanilmaz
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin
+      YUKLEME_KOK: /yukleme
+      CORS_ALLOWED_ORIGINS: ""
+      SURUM: ${SURUM:-dev}
+      TZ: Europe/Istanbul
+    volumes:
+      # `:Z` SELinux etiketi (RHEL) — macOS/Docker Desktop'ta yok sayılır, sunucuda şarttır.
+      - ${DATA_YUKLEME_KOK:-./yukleme}:/yukleme:Z
+    ports:
+      - "127.0.0.1:${DEV_API_PORT:-8093}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/saglik || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+
+  tti-data-panel:
+    image: tti-data-panel:${SURUM:-dev}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.panel
+    container_name: tti-data-panel
+    restart: unless-stopped
+    mem_limit: 128m
+    depends_on:
+      - tti-data-server
+    environment:
+      TZ: Europe/Istanbul
+    ports:
+      - "127.0.0.1:${DEV_PANEL_PORT:-8094}:8080"
+    healthcheck:
+      # ⚠️ localhost DEĞİL 127.0.0.1: konteyner içinde `localhost` önce IPv6 ::1'e çözülür,
+      # nginx ise yalnızca IPv4 dinler (listen 8080). curl diğer adrese geri düşer, busybox
+      # wget DÜŞMEZ — "connection refused" verir ve konteyner ayaktayken unhealthy görünür.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+volumes:
+  data_db_verisi:

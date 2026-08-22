@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launcher ikonu zemini: TTI logosu beyaz zemin üzerine tasarlanmıştır.
+         Uygulama içi renkler designsystem/Color.kt'dedir. -->
+    <color name="ic_launcher_background">#FFFFFF</color>
+</resources>

@@ -1,0 +1,15 @@
+# Multi-stage build: bağlam = kaynak (imaj içinde derlenir). Aşağıdakiler HARİÇ.
+
+.git
+.gitignore
+
+# Derleme çıktıları — imaj içinde yeniden üretilir
+**/bin
+**/obj
+yayin
+
+# Belge / sır / sistem
+*.md
+.env
+.env.*
+**/.DS_Store

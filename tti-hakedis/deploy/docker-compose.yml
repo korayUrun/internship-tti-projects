@@ -1,0 +1,63 @@
+services:
+  db:
+    image: postgres:17
+    container_name: tti-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_ADI}
+      POSTGRES_USER: ${DB_KULLANICI}
+      POSTGRES_PASSWORD: ${DB_PAROLA}
+      TZ: Europe/Istanbul
+      # locale=C: sıralama ve karşılaştırma dile göre değişmesin (Türkçe locale tuzağı, CLAUDE.md §5).
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+    volumes:
+      - tti_db_verisi:/var/lib/postgresql/data
+    ports:
+      # Yalnızca sunucunun kendisinden erişilebilir; dışarıya açılmaz.
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_KULLANICI} -d ${DB_ADI}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: tti-hakedis-server:${SURUM:-dev}
+    container_name: tti-hakedis-server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${DB_ADI}
+      DB_KULLANICI: ${DB_KULLANICI}
+      DB_PAROLA: ${DB_PAROLA}
+      ARSIV_KOK: /arsiv
+      YUKLEME_KOK: /yukleme
+      TZ: Europe/Istanbul
+    volumes:
+      # Belge aynası: named volume DEĞİL, bind mount — dosyalara host tarafından doğrudan,
+      # uygulama ve veritabanı çalışmıyorken de erişilebilmesi gerekiyor.
+      #
+      # `:Z` SELinux etiketi RHEL/Fedora için: orada SELinux varsayılan olarak `enforcing` ve etiket
+      # olmadan konteyner bu iki klasöre yazamaz — uygulama açılır, sağlık kontrolü geçer, ama ilk
+      # PDF üretiminde arşive yazamaz. SELinux olmayan sistemlerde (macOS, Ubuntu) seçenek
+      # ayrıştırılır ve hiçbir şey yapmaz; tek compose dosyası üç platformda da çalışsın diye burada.
+      - ${ARSIV_KOK}:/arsiv:Z
+      # Kullanıcının yüklediği dosyalar (EK1/EK2) — arşivden AYRI kök.
+      # Arşiv üretilen çıktının aynasıdır, gerekirse yeniden üretilir; burası asıl veridir.
+      - ${YUKLEME_KOK}:/yukleme:Z
+    ports:
+      - "${SUNUCU_PORT:-8081}:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/api/saglik || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+volumes:
+  tti_db_verisi:

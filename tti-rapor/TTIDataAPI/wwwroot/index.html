@@ -1,0 +1,2244 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saha Altyapı/Kablo Durum Formu</title>
+  
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Saha Altyapı">
+  
+  <script>
+    const manifestData = {
+      "name": "Saha Altyapı ve Kablo Durum Formu",
+      "short_name": "Saha Takip",
+      "start_url": "./",
+      "display": "standalone",
+      "background_color": "#ebf3f2",
+      "theme_color": "#2563eb",
+      "icons": [
+        { "src": "/ikon/uygulama-512.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "/ikon/uygulama-512.png", "sizes": "512x512", "type": "image/png" }
+      ]
+    };
+    const stringManifest = JSON.stringify(manifestData);
+    const blob = new Blob([stringManifest], {type: 'application/json'});
+    const manifestURL = URL.createObjectURL(blob);
+    const linkTag = document.createElement('link');
+    linkTag.rel = 'manifest';
+    linkTag.href = manifestURL;
+    document.head.appendChild(linkTag);
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        // ⚠️ /api/ istekleri service worker'dan MUAF. Önceki hâlde yakalayıcı her isteği
+        // kapsıyordu ve ağ dalgalandığında kullanıcıya önbellekten BAYAT kayıt listesi
+        // gösteriliyordu — hem de hiçbir hata çıkmadan. Statü değişikliği gibi bir yazma
+        // işleminin eski veriye bakarak yapılması, kaydı sessizce yanlış duruma çeker.
+        const swCode = `
+          self.addEventListener('install', (e) => { self.skipWaiting(); });
+          self.addEventListener('activate', (e) => { return self.clients.claim(); });
+          self.addEventListener('fetch', (e) => {
+            const url = new URL(e.request.url);
+            if (url.pathname.startsWith('/api/') || e.request.method !== 'GET') return;
+            e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+          });
+        `;
+        const swBlob = new Blob([swCode], {type: 'text/javascript'});
+        const swUrl = URL.createObjectURL(swBlob);
+        navigator.serviceWorker.register(swUrl).catch(err => console.log('SW kayıt hatası:', err));
+      });
+    }
+  </script>
+
+  <!-- Üçüncü parti kütüphane KALMADI.
+       SheetJS (xlsx) kaldırıldı: Excel'i artık sunucu üretiyor, istemcide ikinci bir üretici
+       tutmak sütun düzeninin sessizce ayrışmasına yol açardı (~880 KB tasarruf).
+       JSZip (kmz) kaldırıldı: güzergah dosyası artık istemcide ÜRETİLMİYOR, kullanıcının
+       yüklediği dosya sunucuda saklanıp olduğu gibi geri veriliyor (~100 KB tasarruf). -->
+
+  <style>
+    /* ============================================================
+       Modern kurumsal tasarım sistemi — TTI Saha Rapor
+       Renkler, boşluk, köşe ve gölge tek yerde (CSS değişkenleri).
+       ============================================================ */
+    :root {
+      --brand:        #4f46e5;   /* indigo-600 — birincil */
+      --brand-600:    #4338ca;   /* hover */
+      --brand-700:    #3730a3;
+      --brand-soft:   #eef2ff;   /* açık indigo zemin */
+      --brand-ring:   rgba(79, 70, 229, 0.18);
+
+      --ink:          #0f172a;   /* koyu lacivert başlıklar */
+      --ink-2:        #1e293b;   /* asıl metin */
+      --muted:        #64748b;   /* ikincil metin */
+      --label:        #475569;   /* etiketler */
+
+      --bg:           #eef1f6;
+      --card:         #ffffff;
+      --surface:      #f8fafc;   /* iç kutular */
+      --border:       #e5e9f0;
+      --border-2:     #d5dbe6;
+
+      --success:      #16a34a;
+      --success-600:  #15803d;
+      --danger:       #e11d48;
+      --danger-600:   #be123c;
+      --warn:         #f59e0b;
+
+      --r-sm: 8px;
+      --r:    12px;
+      --r-lg: 16px;
+
+      --sh-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+      --sh:    0 4px 12px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+      --sh-lg: 0 18px 40px -12px rgba(15, 23, 42, 0.22);
+      --header-grad: linear-gradient(135deg, #312e81 0%, #1e293b 55%, #0f172a 100%);
+    }
+
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background:
+        radial-gradient(1200px 600px at 100% -10%, #e7ebf5 0%, rgba(231,235,245,0) 60%),
+        var(--bg);
+      margin: 0;
+      padding: 18px;
+      color: var(--ink-2);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: 1.5;
+    }
+    .page-wrapper { max-width: 1180px; margin: 0 auto; }
+    .view-section { display: none; }
+    .view-section.active { display: block !important; }
+
+    /* ---------- Giriş ekranı ---------- */
+    .login-container {
+      max-width: 440px;
+      margin: 8vh auto;
+      background: var(--card);
+      border-radius: var(--r-lg);
+      box-shadow: var(--sh-lg);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .login-header-top {
+      background: var(--header-grad);
+      color: #ffffff;
+      padding: 30px 24px;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      text-align: center;
+    }
+    .login-menu-box { padding: 22px 22px 6px; display: flex; flex-direction: column; gap: 10px; }
+    .login-role-btn {
+      width: 100%;
+      background-color: #ffffff;
+      color: var(--ink);
+      border: 1.5px solid var(--border-2);
+      padding: 15px;
+      border-radius: var(--r-sm);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.18s ease;
+    }
+    .login-role-btn:hover { background-color: var(--brand-soft); border-color: var(--brand); color: var(--brand); transform: translateY(-1px); }
+    .login-role-btn.active-role { background-color: var(--brand); color: #ffffff; border-color: var(--brand); box-shadow: 0 6px 16px -6px var(--brand); }
+
+    .login-form-section { display: none; padding: 8px 24px 26px; background: var(--card); }
+    .login-form-section.active-form { display: block; }
+
+    .login-group { margin-bottom: 16px; }
+    .login-group label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 600;
+      margin-bottom: 7px;
+      color: var(--label);
+    }
+    .login-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border-2);
+      border-radius: var(--r-sm);
+      font-size: 14px;
+      background-color: #ffffff;
+      color: var(--ink-2);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .login-input:focus {
+      border-color: var(--brand);
+      outline: none;
+      box-shadow: 0 0 0 4px var(--brand-ring);
+    }
+    .btn-login {
+      width: 100%;
+      background: linear-gradient(180deg, var(--brand) 0%, var(--brand-600) 100%);
+      color: #ffffff;
+      border: none;
+      padding: 14px;
+      border-radius: var(--r-sm);
+      font-weight: 700;
+      font-size: 14.5px;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      margin-top: 4px;
+      box-shadow: 0 8px 18px -8px var(--brand);
+      transition: filter 0.15s, transform 0.1s;
+    }
+    .btn-login:hover { filter: brightness(1.05); }
+    .btn-login:active { transform: translateY(1px); }
+
+    /* ---------- Üst başlık ---------- */
+    .header-box {
+      background: var(--header-grad);
+      color: #ffffff;
+      padding: 20px 26px;
+      border-radius: var(--r-lg) var(--r-lg) 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      box-shadow: var(--sh);
+    }
+    .header-title-group { display: flex; align-items: center; gap: 12px; }
+    .header-title-group > span { font-size: 22px; }
+    .header-title { font-size: 18px; font-weight: 700; margin: 0; letter-spacing: 0.2px; }
+    .user-session-info { font-size: 12.5px; color: #c7d2fe; display: flex; align-items: center; gap: 10px; }
+    .profile-select {
+      padding: 8px 12px;
+      border-radius: var(--r-sm);
+      border: 1px solid rgba(255,255,255,0.18);
+      background-color: rgba(255,255,255,0.10);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #ffffff;
+      cursor: pointer;
+    }
+    .profile-select option { color: #1e293b; }
+
+    /* ---------- Form kartı ---------- */
+    .form-card {
+      background: var(--card);
+      padding: 30px;
+      border-radius: 0 0 var(--r-lg) var(--r-lg);
+      border: 1px solid var(--border);
+      border-top: none;
+      box-shadow: var(--sh);
+      max-width: 960px;
+      margin: 0 auto 24px;
+    }
+    .form-group { margin-bottom: 18px; position: relative; }
+    .form-group label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 7px; color: var(--label); }
+    .form-group label.text-dark { color: var(--ink); }
+    .input-wrapper { position: relative; display: flex; align-items: center; }
+    .form-control {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border-2);
+      border-radius: var(--r-sm);
+      font-size: 14px;
+      background-color: #ffffff;
+      color: var(--ink-2);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-control:focus { border-color: var(--brand); outline: none; box-shadow: 0 0 0 4px var(--brand-ring); }
+    .form-control:disabled { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+    textarea.form-control { min-height: 90px; resize: vertical; }
+    select.form-control { cursor: pointer; }
+    input[type="file"].form-control { padding: 9px 12px; }
+    .lens-btn {
+      position: absolute;
+      right: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      border-radius: var(--r-sm);
+      padding: 7px 10px;
+      cursor: pointer;
+      font-size: 15px;
+      color: var(--label);
+      transition: background 0.15s;
+    }
+    .lens-btn:hover { background: var(--brand-soft); }
+
+    /* Fotoğraf önizleme */
+    /* JS görünürlüğü kontrol eder (fotoğraf seçilince inline-block). Varsayılan gizli. */
+    #photoPreviewContainer { position: relative; margin-top: 12px; }
+    #photoPreviewImg {
+      max-width: 160px; max-height: 120px; width: auto; height: auto;
+      border-radius: var(--r-sm); border: 1px solid var(--border-2);
+      box-shadow: var(--sh-sm); object-fit: cover; cursor: pointer; background: var(--surface);
+    }
+
+    .autocomplete-items {
+      position: absolute;
+      border: 1px solid var(--border-2);
+      z-index: 99;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      max-height: 240px;
+      overflow-y: auto;
+      background-color: #ffffff;
+      border-radius: var(--r-sm);
+      box-shadow: var(--sh-lg);
+    }
+    .autocomplete-items div {
+      padding: 11px 14px;
+      cursor: pointer;
+      font-size: 13.5px;
+      color: var(--ink-2);
+      border-bottom: 1px solid var(--surface);
+    }
+    .autocomplete-items div:last-child { border-bottom: none; }
+    .autocomplete-items div:hover {
+      background-color: var(--brand-soft);
+      color: var(--brand);
+      font-weight: 600;
+    }
+
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .section-box {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--brand);
+      border-radius: var(--r);
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+    .section-box-title { font-size: 12.5px; font-weight: 700; color: var(--ink); margin-bottom: 12px; letter-spacing: 0.2px; }
+    /* GPS düğmesi, konum durumu ve elle koordinat girişi kuralları kaldırıldı: başlangıç/bitiş
+       konumu alanlarının yerini güzergah DOSYASI (.kml/.kmz) aldı. */
+
+    .btn-submit-green, .btn-preview-blue {
+      width: 100%;
+      color: #ffffff;
+      border: none;
+      padding: 15px;
+      border-radius: var(--r-sm);
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      margin-bottom: 12px;
+      transition: filter 0.15s, transform 0.1s;
+    }
+    .btn-submit-green { background: linear-gradient(180deg, var(--success) 0%, var(--success-600) 100%); box-shadow: 0 10px 20px -10px var(--success); }
+    .btn-preview-blue { background: linear-gradient(180deg, var(--brand) 0%, var(--brand-600) 100%); box-shadow: 0 10px 20px -10px var(--brand); }
+    .btn-submit-green:hover, .btn-preview-blue:hover { filter: brightness(1.05); }
+    .btn-submit-green:active, .btn-preview-blue:active { transform: translateY(1px); }
+
+    /* ---------- Liste görünümü ---------- */
+    .list-header-bar { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+    .list-title { font-size: 20px; font-weight: 700; color: var(--ink); margin: 0; display: flex; align-items: center; gap: 10px; }
+    .list-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-list-action {
+      border: none;
+      padding: 10px 16px;
+      border-radius: var(--r-sm);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: var(--sh-sm);
+      transition: filter 0.15s, transform 0.1s;
+    }
+    .btn-list-action:hover { filter: brightness(1.05); transform: translateY(-1px); }
+    .btn-list-action:active { transform: translateY(0); }
+    .btn-form-gir { background-color: var(--brand); color: #ffffff; }
+    .btn-excel-indir { background-color: var(--success); color: #ffffff; }
+    .btn-liste-git { background-color: var(--ink-2); color: #ffffff; }
+    .btn-cikis { background-color: var(--danger); color: #ffffff; }
+
+    .table-card { background: var(--card); border-radius: var(--r-lg); border: 1px solid var(--border); box-shadow: var(--sh); overflow-x: auto; width: 100%; margin-bottom: 22px; }
+    .cable-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 1300px; }
+    .cable-table thead { background-color: var(--surface); border-bottom: 1px solid var(--border-2); }
+    .cable-table th { padding: 13px 10px; text-align: left; font-weight: 700; color: var(--label); border-right: 1px solid var(--border); white-space: nowrap; text-transform: none; }
+    .cable-table th:last-child, .cable-table td:last-child { border-right: none; }
+    .cable-table td { padding: 11px 10px; border-bottom: 1px solid var(--surface); border-right: 1px solid var(--surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; color: var(--ink-2); }
+    .cable-table tbody tr { transition: background 0.12s; }
+    .cable-table tbody tr:hover { background-color: var(--brand-soft); }
+
+    .badge { display: inline-block; padding: 5px 11px; border-radius: 999px; font-weight: 700; font-size: 10.5px; text-align: center; letter-spacing: 0.3px; }
+    .statu-open { background-color: #e0edff; color: #1d4ed8; }
+    .statu-progress { background-color: #fef3c7; color: #b45309; }
+    .statu-waiting { background-color: #f3e8ff; color: #7e22ce; }
+    .statu-resolved { background-color: #dcfce7; color: #15803d; }
+    .statu-closed { background-color: #e2e8f0; color: #475569; }
+    .statu-cancel { background-color: #ffe4e6; color: #be123c; }
+
+    .risk-low { background-color: #dcfce7; color: #15803d; }
+    .risk-medium { background-color: #fef3c7; color: #b45309; }
+    .risk-high { background-color: #ffedd5; color: #c2410c; }
+    .risk-critical { background-color: #ffe4e6; color: #be123c; }
+
+    /* Satır içi hızlı statü menüsü — renkli pill görünümlü select */
+    .statu-select {
+      border: none;
+      border-radius: 999px;
+      padding: 6px 26px 6px 12px;
+      font-weight: 700;
+      font-size: 10.5px;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      max-width: 100%;
+      appearance: none; -webkit-appearance: none; -moz-appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 9px center;
+      transition: filter 0.15s;
+    }
+    .statu-select:hover { filter: brightness(0.97); }
+    .statu-select:focus { outline: none; box-shadow: 0 0 0 3px var(--brand-ring); }
+    .statu-select option { background: #ffffff; color: var(--ink-2); font-weight: 600; }
+
+    /* İşlem sütunu: sade kebab (⋮) butonu + tıklayınca açılan menü */
+    .islem-btn {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 20px;
+      line-height: 1;
+      font-weight: 700;
+      padding: 4px 11px;
+      border-radius: var(--r-sm);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .islem-btn:hover { background: var(--brand-soft); color: var(--brand); }
+
+    .islem-menu {
+      position: fixed;
+      z-index: 1200;
+      min-width: 172px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: var(--sh-lg);
+      padding: 6px;
+    }
+    .islem-menu button {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      text-align: left;
+      border: none;
+      background: transparent;
+      padding: 10px 12px;
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink-2);
+      cursor: pointer;
+    }
+    .islem-menu button:hover { background: var(--surface); }
+    .islem-menu button.tehlike { color: var(--danger); }
+    .islem-menu button.tehlike:hover { background: #fff1f2; }
+
+    .history-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 12px; font-size: 12px; max-height: 140px; overflow-y: auto; margin-top: 6px; }
+    .history-item { margin-bottom: 6px; color: #334155; padding-bottom: 6px; border-bottom: 1px dashed var(--border); }
+    .history-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+    .region-dashboard { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 22px; }
+    .region-card { background: var(--card); border: 1px solid var(--border); border-top: 3px solid var(--brand); border-radius: var(--r); padding: 16px; box-shadow: var(--sh-sm); transition: box-shadow 0.15s, transform 0.1s; }
+    .region-card:hover { box-shadow: var(--sh); transform: translateY(-2px); }
+    .region-card-title { font-size: 13.5px; font-weight: 700; color: var(--ink); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .region-card-count { font-size: 11px; font-weight: 700; background: var(--brand-soft); color: var(--brand); padding: 3px 9px; border-radius: 999px; }
+    .region-card-notes { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+    /* ---------- Modallar ---------- */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(2px);
+      display: none; justify-content: center; align-items: center; z-index: 999; padding: 16px;
+    }
+    .modal-content {
+      background: #ffffff; padding: 26px; border-radius: var(--r-lg); width: 100%; max-width: 520px;
+      box-shadow: var(--sh-lg); max-height: 90vh; overflow-y: auto; border: 1px solid var(--border);
+    }
+    .modal-title { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+    .modal-aciklama { font-size: 13px; color: var(--muted); margin: -8px 0 18px; line-height: 1.55; }
+
+    /* ---------- Parola pencereleri ----------
+       Önceden geri bildirim `alert()` ile veriliyordu: tarayıcının kendi kutusu sayfanın dilinden
+       ve tasarımından kopuk, adres satırını ("localhost:8082 says") gösteriyor ve hatayı formun
+       yanında değil ekranın ortasında anlatıyordu. Artık mesaj pencerenin İÇİNDE, alanın altında. */
+    .alan-mesaj { font-size: 12.5px; border-radius: var(--r-sm); padding: 10px 12px; margin-bottom: 14px; display: none; line-height: 1.5; }
+    .alan-mesaj.gorunur { display: block; }
+    .alan-mesaj.hata { background: #fff1f2; border: 1px solid #fecdd3; color: var(--danger-600); }
+    .alan-mesaj.basari { background: #dcfce7; border: 1px solid #bbf7d0; color: var(--success-600); }
+    .alan-mesaj.bilgi { background: var(--brand-soft); border: 1px solid #c7d2fe; color: var(--brand-700); }
+
+    /* Parola alanı + göster/gizle düğmesi */
+    .parola-alani { position: relative; display: flex; align-items: center; }
+    .parola-alani .form-control { padding-right: 82px; }
+    .parola-goster {
+      position: absolute; right: 6px;
+      background: var(--surface); border: 1px solid var(--border-2); border-radius: var(--r-sm);
+      padding: 6px 10px; font-size: 11.5px; font-weight: 600; color: var(--label); cursor: pointer;
+    }
+    .parola-goster:hover { background: var(--brand-soft); color: var(--brand); }
+
+    /* ~~Parola gücü göstergesi (zayıf/orta/güçlü)~~ kaldırıldı (kullanıcı isteği, 18 Ağustos 2026):
+       kabul kuralı zaten tek ve nesnel — en az 6 karakter, sunucuda denetleniyor. Renkli çubuk
+       onun üstüne öznel bir yargı bindiriyordu. Alanın altındaki sabit ipucu yeterli. */
+    .parola-ipucu { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+
+    .btn-modal {
+      flex: 1; justify-content: center; padding: 12px; border: none; border-radius: var(--r-sm);
+      font-weight: 700; font-size: 13.5px; cursor: pointer; transition: filter 0.15s, transform 0.1s;
+    }
+    .btn-modal:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-modal:not(:disabled):hover { filter: brightness(1.05); }
+    .btn-modal-birincil { background: linear-gradient(180deg, var(--brand) 0%, var(--brand-600) 100%); color: #fff; }
+    .btn-modal-ikincil { background: #fff; color: var(--label); border: 1.5px solid var(--border-2); }
+    .btn-modal-ikincil:not(:disabled):hover { background: var(--surface); }
+
+    /* ---------- Katalog yükleme başarı animasyonu ----------
+       Önceden yükleme bitince yalnızca bir metin satırı yazılıyor ve pencere açık kalıyordu;
+       kullanıcı işin bittiğini fark etmiyor, "Kapat"a basması gerektiğini anlamıyordu. Artık
+       çizilen bir onay işareti + sayaç, sonra pencere kendiliğinden kapanıyor. */
+    .yukleme-basari { display: none; text-align: center; padding: 18px 8px 6px; }
+    .yukleme-basari.gorunur { display: block; }
+    .basari-halka {
+      width: 72px; height: 72px; margin: 0 auto 14px; border-radius: 50%;
+      background: #dcfce7; display: flex; align-items: center; justify-content: center;
+      animation: halkaBuyu 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    @keyframes halkaBuyu { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .basari-tik { width: 38px; height: 38px; stroke: var(--success-600); stroke-width: 3.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    /* Onay işareti "çiziliyor": yol uzunluğu kadar kesik, offset sıfıra iniyor. */
+    .basari-tik path { stroke-dasharray: 48; stroke-dashoffset: 48; animation: tikCiz 0.4s 0.2s ease-out forwards; }
+    @keyframes tikCiz { to { stroke-dashoffset: 0; } }
+    .basari-baslik { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px; animation: yukariGel 0.3s 0.25s both; }
+    .basari-ozet { font-size: 13px; color: var(--muted); line-height: 1.6; animation: yukariGel 0.3s 0.35s both; }
+    .basari-sayac { font-size: 11.5px; color: var(--muted); margin-top: 12px; }
+    @keyframes yukariGel { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    /* Hareketi azaltılmış tercihinde animasyon çalışmaz; içerik yine görünür. */
+    @media (prefers-reduced-motion: reduce) {
+      .basari-halka, .basari-tik path, .basari-baslik, .basari-ozet { animation: none; }
+      .basari-tik path { stroke-dashoffset: 0; }
+    }
+
+    /* ---------- Kullanıcı yönetimi (yalnızca sistem yöneticisi) ---------- */
+    .kullanici-tablo { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .kullanici-tablo th { text-align: left; padding: 10px 8px; font-size: 11.5px; font-weight: 700; color: var(--label); border-bottom: 1px solid var(--border-2); }
+    .kullanici-tablo td { padding: 10px 8px; border-bottom: 1px solid var(--surface); vertical-align: middle; }
+    .kullanici-tablo tr:last-child td { border-bottom: none; }
+    .kullanici-adi { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; color: var(--ink); }
+    .rol-rozet { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--surface); color: var(--label); }
+    .rol-rozet.yonetici { background: var(--brand-soft); color: var(--brand); }
+    .rol-rozet.sistem { background: #fef3c7; color: #b45309; }
+    .preview-item { margin-bottom: 12px; font-size: 13px; color: var(--ink-2); }
+    .preview-item span { font-weight: 600; color: var(--label); display: inline-block; width: 150px; vertical-align: top; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+
+    /* Fotoğraf büyütme/silme */
+    .photo-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 9999;
+    }
+    .photo-modal-content { max-width: 90%; max-height: 90%; position: relative; }
+    .photo-modal-content img { width: 100%; height: auto; max-height: 85vh; border-radius: var(--r); border: 2px solid #ffffff; }
+    .photo-modal-close {
+      position: absolute; top: -38px; right: 0; color: #ffffff; font-size: 26px; font-weight: bold; cursor: pointer; background: none; border: none;
+    }
+    .photo-delete-badge {
+      position: absolute; top: -8px; right: -8px; background: var(--danger); color: white; border: 2px solid #fff; border-radius: 50%; width: 26px; height: 26px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--sh);
+    }
+    .photo-delete-badge:hover { background: var(--danger-600); }
+
+    @media (max-width: 640px) {
+      body { padding: 10px; }
+      .form-card { padding: 20px; }
+      .form-grid-2 { grid-template-columns: 1fr; gap: 14px; }
+      .header-box { padding: 16px 18px; }
+      .header-title { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-wrapper">
+
+    <!-- 0. GÖRÜNÜM: KULLANICI GİRİŞ EKRANI -->
+    <div id="loginView" class="view-section active">
+      <div class="login-container">
+        <div class="login-header-top">
+          Saha Altyapı / Kablo Durum Formu
+        </div>
+        <div class="login-menu-box">
+          <button type="button" class="login-role-btn" id="btnRoleUser" onclick="selectLoginRole('user')">Saha Sorumlusu Girişi</button>
+          <button type="button" class="login-role-btn" id="btnRoleAdmin" onclick="selectLoginRole('admin')">Yönetici Girişi</button>
+          <button type="button" class="login-role-btn" id="btnRoleSistem" onclick="selectLoginRole('sistem')">Admin Girişi</button>
+        </div>
+        <div id="loginFormSection" class="login-form-section">
+          <form onsubmit="handleLoginSubmit(event)">
+            <div class="login-group">
+              <label id="loginUserLabel">Kullanıcı Adı:</label>
+              <input type="text" id="loginUser" class="login-input" placeholder="Kullanıcı adınızı giriniz...">
+            </div>
+            <div class="login-group">
+              <label>Şifre:</label>
+              <input type="password" id="loginPass" class="login-input" placeholder="Şifrenizi giriniz...">
+            </div>
+            <button type="submit" class="btn-login">GİRİŞ YAP</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ÜST GEÇİŞ BUTONLARI -->
+    <div id="topNavbar" style="display: none; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <div style="display: flex; gap: 10px;">
+        <button class="btn-list-action btn-cikis" type="button" onclick="handleLogout()">🚪 Güvenli Çıkış</button>
+        <button class="btn-list-action" type="button" style="background-color: #d97706; color: #fff;" onclick="openChangePasswordModal()">🔑 Şifre Değiştir</button>
+        <button class="btn-list-action" type="button" id="katalogYukleBtn" style="display: none; background-color: #0369a1; color: #fff;" onclick="openKatalogModal()">📥 Kablo Kataloğu Yükle</button>
+        <!-- Yalnızca sistem yöneticisinde görünür; uç zaten sunucuda bayrakla korunuyor. -->
+        <button class="btn-list-action" type="button" id="kullaniciYonetimBtn" style="display: none; background-color: #7c3aed; color: #fff;" onclick="openKullaniciModal()">👥 Kullanıcılar</button>
+      </div>
+      <button class="btn-list-action btn-liste-git" type="button" id="toggleViewBtn" onclick="toggleMainView()">📊 Talep Listesine Git</button>
+    </div>
+
+    <!-- Kablo kataloğu yükleme (yalnızca yönetici). Insert-only: yeni NOSID'ler eklenir. -->
+    <div id="katalogModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+      <div style="background: #fff; padding: 24px; border-radius: 8px; width: min(480px, 92%);">
+        <h2 style="margin-top: 0; font-size: 18px;">📥 Kablo Kataloğu Yükle</h2>
+        <p style="font-size: 13px; color: #475569;">NOS+ envanteri Excel'i (.xlsx). Yalnızca kataloğda henüz olmayan NOSID'ler eklenir; mevcut kayıtlar değişmez, hiçbir kayıt silinmez.</p>
+        <input type="file" id="katalogDosya" accept=".xlsx" style="margin: 8px 0; width: 100%;">
+        <div id="katalogSonuc" style="font-size: 13px; margin: 8px 0; white-space: pre-line;"></div>
+
+        <!-- Başarı ekranı: yükleme bitince form gizlenir, bu blok animasyonla gelir. -->
+        <div id="katalogBasari" class="yukleme-basari">
+          <div class="basari-halka">
+            <svg class="basari-tik" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12.5 L9.5 18 L20 6.5" />
+            </svg>
+          </div>
+          <div class="basari-baslik">Kablo kataloğu yüklendi</div>
+          <div class="basari-ozet" id="katalogBasariOzet"></div>
+          <div class="basari-sayac" id="katalogBasariSayac"></div>
+        </div>
+
+        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px;" id="katalogDugmeler">
+          <button class="btn-list-action" type="button" onclick="closeKatalogModal()">Kapat</button>
+          <button class="btn-list-action" type="button" id="katalogYukleOnayBtn" style="background-color: #0369a1; color: #fff;" onclick="uploadKatalog()">Yükle</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. GÖRÜNÜM: FORM SAYFASI -->
+    <div id="formView" class="view-section">
+      <div class="header-box">
+        <div class="header-title-group">
+          <span>📋</span>
+          <h1 class="header-title" id="formHeaderTitle">Saha Altyapı/Kablo Durum Formu</h1>
+        </div>
+        <div class="user-session-info">
+          <span>👤 Aktif Oturum:</span>
+          <select class="profile-select" id="profileSelect" onchange="renderTable()">
+            <optgroup label="Yöneticiler">
+              <option value="Kemal Kestane">Kemal Kestane</option>
+              <option value="Serhat Çorbacı">Serhat Çorbacı</option>
+              <option value="Ömer Firat">Ömer Firat</option>
+              <option value="Sinan Pamuk">Sinan Pamuk</option>
+            </optgroup>
+            <optgroup label="Saha Sorumluları">
+              <option value="Oğuz Geyve">Oğuz Geyve</option>
+              <option value="Mehmet İnce">Mehmet İnce</option>
+              <option value="Mehmet Yener">Mehmet Yener</option>
+              <option value="Muharrem Birlik">Muharrem Birlik</option>
+              <option value="Servet Özkan">Servet Özkan</option>
+              <option value="Taylan Karaböcek">Taylan Karaböcek</option>
+              <option value="Süleyman Aktürk">Süleyman Aktürk</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <form id="cableForm" onsubmit="event.preventDefault(); openPreviewModal();">
+          <input type="hidden" id="editRecordId">
+
+          <div class="form-group">
+            <label>🔑 NOSID / Kablo Adı:</label>
+            <div class="input-wrapper">
+              <input type="text" id="inputNosid" class="form-control" placeholder="Örn: mtc55169a yazarak arayın..." autocomplete="off" required oninput="filterNosid(this.value)">
+              <button type="button" class="lens-btn" title="Lens ile Okut" onclick="alert('🔍 Kamera/Lens Okuyucu başlatılıyor.')">🔍</button>
+            </div>
+            <div id="autocompleteList" class="autocomplete-items"></div>
+          </div>
+
+          <div id="kilitNotu" style="display:none; margin-bottom:14px; padding:10px 12px; background:#fffbe3; border:1px solid #fef08a; border-radius:6px; font-size:13px; color:#854d0e;">
+            🔒 Gönderilmiş bir talebin kablo, konum ve güzergâh bilgileri değiştirilemez.
+            Bu ekranda yalnızca <b>statü</b> ve <b>düzenleme notu</b> güncellenir; her değişiklik
+            geçmiş kaydına yazılır.
+          </div>
+
+          <!-- Seçenekler açılışta /api/lookup/kapsamlar'dan (rapor.proje_kapsami tablosu)
+               doldurulur; buradaki tek seçenek yalnızca yüklenmeden önceki yer tutucudur.
+               Listeye yeni madde eklemek YÖNETİCİYE açıktır (yandaki + düğmesi). -->
+          <div class="form-group">
+            <label>📌 Proje Kapsamı:</label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <select id="inputProje" class="form-control" required style="flex: 1;">
+                <option value="1-Açıkta Serili Kablolar">1-Açıkta Serili Kablolar</option>
+              </select>
+              <button type="button" id="kapsamEkleBtn" class="btn-list-action btn-form-gir"
+                      style="display: none; padding: 12px 14px; white-space: nowrap;"
+                      title="Listede olmayan bir proje kapsamı ekle" onclick="kapsamEkle()">➕ Ekle</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>📍 Location A:</label>
+            <textarea id="inputLocA" class="form-control" rows="2"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>📍 Location B:</label>
+            <textarea id="inputLocB" class="form-control" rows="2"></textarea>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="text-dark">Saha / Şehir:</label>
+              <input type="text" id="inputSaha" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="text-dark">Ek Aralığı:</label>
+              <input type="text" id="inputLocB_ek" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <!-- Alan katalogdan OTOMATİK DOLDURULMAZ ve boş bırakılamaz: kataloğun uzunluğu
+                 envanterin kablo uzunluğu, sahada ölçülen güzergâh uzunluğu değil. Önceden NOSID
+                 seçilince buraya yazılıyordu ve kullanıcı onaylamadan gerçek veri gibi kaydediliyordu. -->
+            <div class="form-group">
+              <label class="text-dark">📏 Güzergah Uzunluğu (metre):</label>
+              <input type="number" id="inputUzunluk" class="form-control" min="1" step="1"
+                     required placeholder="Metre cinsinden (örn: 150)">
+            </div>
+            <div class="form-group">
+              <label class="text-dark">Arıza Riski Seviyesi:</label>
+              <select id="inputRisk" class="form-control">
+                <option value="1 - Düşük">🟢 1 - Düşük</option>
+                <option value="2 - Orta">🟡 2 - Orta</option>
+                <option value="3 - Yüksek">🟠 3 - Yüksek</option>
+                <option value="4 - Kritik">🔴 4 - Kritik</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- FOTOĞRAF ÇEK / YÜKLE VE SİLME BUTONLU ALANI -->
+          <div class="section-box" style="background: #ffffff;">
+            <div class="section-box-title">📷 Fotoğraf Çek / Yükle:</div>
+            <input type="file" id="inputPhoto" accept="image/*" class="form-control" style="background: #ffffff;">
+            <div id="photoPreviewContainer" style="display: none;">
+              <img id="photoPreviewImg" src="" alt="Önizleme" title="Büyütmek için tıklayın" onclick="openPhotoModal(this.src)">
+              <button type="button" class="photo-delete-badge" title="Fotoğrafı Sil" onclick="deleteUploadedPhoto()">✕</button>
+            </div>
+          </div>
+
+          <!-- DÜZENLEME ALANI (STATÜ, NOT VE GEÇMİŞ LOGLAR) -->
+          <div id="editFieldsSection" style="display: none; background: #f8fafc; padding: 18px; border-radius: 12px; border: 1px solid #e5e9f0; border-left: 3px solid #4f46e5; margin-bottom: 18px;">
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label style="color: #b45309;">📊 Talep Statüsü:</label>
+                <!-- Seçenekler açılışta /api/lookup/statuler'den (Sabitler.Statuler) yeniden doldurulur;
+                     buradakiler yalnızca yüklenmeden önceki yer tutucudur. -->
+                <select id="inputStatu" class="form-control">
+                  <option value="Onay Bekliyor">Onay Bekliyor</option>
+                  <option value="İşleniyor">İşleniyor</option>
+                  <option value="Tamamlandı">Tamamlandı</option>
+                  <option value="İptal Edildi">İptal Edildi</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label style="color: #b45309;">✏️ Düzenleme Notu:</label>
+                <textarea id="inputDesc2" class="form-control" rows="2"></textarea>
+              </div>
+            </div>
+            <label style="color: #b45309; font-size: 12px; font-weight: 700;">📜 Geçmiş Loglar:</label>
+            <div class="history-box" id="historyBox">
+              <div class="history-item">Henüz geçmiş kaydı yok.</div>
+            </div>
+          </div>
+
+          <!-- GÜZERGAH DOSYASI (.kml / .kmz)
+               Başlangıç/bitiş GPS kutularının yerine geldi: o alanlar sahada dolmuyordu (masaüstü
+               tarayıcıda ve kurumsal VPN arkasında konum izni çoğunlukla reddediliyor) ve iki nokta
+               zaten güzergâhın kendisini değil yalnızca uçlarını anlatıyordu. Kullanıcının elindeki
+               dosya güzergâhın tamamını taşır.
+               Yükleme ZORUNLU DEĞİL — tti-hakedis'teki EK1 alanından bilinçli farkı. -->
+          <div class="section-box" style="background: #ffffff;">
+            <div class="section-box-title">🗺️ Güzergah Dosyası (.kml / .kmz):</div>
+            <input type="file" id="inputGuzergah" accept=".kml,.kmz" class="form-control" style="background: #ffffff;">
+            <div style="font-size: 12px; color: var(--muted); margin-top: 8px;">
+              İsteğe bağlıdır — dosya yoksa da talep açılabilir, sonradan da eklenebilir.
+            </div>
+            <div id="guzergahDurum" style="display: none; margin-top: 10px; padding: 9px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-size: 12.5px; color: var(--ink-2); align-items: center; gap: 10px;">
+              <span id="guzergahDosyaAdi" style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+              <button type="button" class="btn-list-action btn-cikis" style="padding: 5px 10px; font-size: 11.5px;" onclick="guzergahKaldir()">Kaldır</button>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 16px;">
+            <label class="text-dark">İlk Saha Açıklaması:</label>
+            <textarea id="inputDesc" class="form-control" rows="3"></textarea>
+          </div>
+
+          <button type="button" class="btn-preview-blue" onclick="openPreviewModal()">👁️ ÖNİZLE</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 2. GÖRÜNÜM: TALEP LİSTESİ SAYFASI -->
+    <div id="listView" class="view-section">
+      <div class="list-header-bar">
+        <h2 class="list-title">📋 Saha Talep Listesi</h2>
+        <div class="list-actions">
+          <button class="btn-list-action btn-form-gir" type="button" onclick="openNewFormView()">📝 Yeni Form Gir</button>
+          <button class="btn-list-action btn-excel-indir" type="button" onclick="handleExportExcel()">📊 Excel İndir (.xlsx)</button>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table class="cable-table">
+          <thead>
+            <tr>
+              <th style="width: 4%;">ID</th>
+              <th style="width: 6%;">Saha</th>
+              <th style="width: 12%;">Kablo Adı (NOSID)</th>
+              <th style="width: 13%;">Location A</th>
+              <th style="width: 13%;">Location B</th>
+              <th style="width: 7%;">Ek Aralığı</th>
+              <th style="width: 5%;">Uzunluk (m)</th>
+              <th style="width: 10%;">Proje Kapsamı</th>
+              <th style="width: 8%;">İlk Açıklama</th>
+              <th style="width: 6%;">Risk</th>
+              <th style="width: 6%;">Statü</th>
+              <th style="width: 7%;">Oluşturan</th>
+              <th style="width: 7%;">Oluşturulma</th>
+              <th style="width: 7%;">Değiştirilme</th>
+              <th style="width: 7%;">Son Değiştiren</th>
+              <th style="width: 8%; text-align: center;">İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+
+      <div style="margin-top: 24px;">
+        <h3 style="font-size: 15px; font-weight: 700; color: #1e3a8a; margin-bottom: 12px;">🗺️ Bölgesel Özet & Durum Paneli</h3>
+        <div class="region-dashboard" id="regionDashboardContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÖNİZLEME MODALI -->
+  <div id="previewModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-title">👁️ Form Veri Önizlemesi</div>
+      <div id="previewBody"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-list-action btn-cikis" style="flex:1; justify-content:center; padding:10px;" onclick="closePreviewModal()">Düzenlemeye Dön</button>
+        <button type="button" class="btn-list-action btn-excel-indir" style="flex:1; justify-content:center; padding:10px;" onclick="confirmAndSubmit()">Onayla ve Gönder</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOTOĞRAF BÜYÜTME MODALI (LIGHTBOX) -->
+  <div id="photoModal" class="photo-modal-overlay" onclick="closePhotoModal()">
+    <div class="photo-modal-content" onclick="event.stopPropagation()">
+      <button class="photo-modal-close" onclick="closePhotoModal()">✕</button>
+      <img id="modalExpandedImg" src="" alt="Büyük Fotoğraf">
+    </div>
+  </div>
+
+  <!-- ŞİFRE PENCERESİ — iki kip: ilk girişte "oluştur", sonrasında "güncelle".
+       Geri bildirim `alert()` ile DEĞİL pencerenin içinde veriliyor (bkz. .alan-mesaj). -->
+  <div id="passwordModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-title" id="passwordModalTitle">🔑 Şifre Güncelle</div>
+      <p class="modal-aciklama" id="passwordModalAciklama">
+        Mevcut şifrenizi doğrulayıp yeni bir şifre belirleyin.
+      </p>
+
+      <div class="alan-mesaj" id="passwordModalMesaj"></div>
+
+      <div class="form-group" id="mevcutPasswordGroup">
+        <!-- Mevcut parola sunucuda doğrulanır: bu alan olmadan, açık bir oturumu ele geçiren
+             biri parolayı bilmeden değiştirebilirdi. -->
+        <label>Mevcut Şifre:</label>
+        <div class="parola-alani">
+          <input type="password" id="mevcutPasswordInput" class="form-control" placeholder="Mevcut şifreniz" autocomplete="current-password">
+          <button type="button" class="parola-goster" onclick="parolaGoruntule('mevcutPasswordInput', this)">Göster</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Yeni Şifre:</label>
+        <div class="parola-alani">
+          <input type="password" id="newPasswordInput" class="form-control" placeholder="En az 6 karakter" autocomplete="new-password">
+          <button type="button" class="parola-goster" onclick="parolaGoruntule('newPasswordInput', this)">Göster</button>
+        </div>
+        <div class="parola-ipucu">En az 6 karakter olmalıdır.</div>
+      </div>
+
+      <div class="form-group">
+        <label>Yeni Şifre (Tekrar):</label>
+        <div class="parola-alani">
+          <!-- Tekrar alanı: tek alanla yazım hatası ancak bir sonraki girişte fark edilirdi ve
+               kullanıcı hesabına giremezdi. -->
+          <input type="password" id="newPasswordInput2" class="form-control" placeholder="Yeni şifreyi tekrar girin" autocomplete="new-password">
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-modal btn-modal-ikincil" id="passwordCancelBtn" onclick="closePasswordModal()">İptal</button>
+        <button type="button" class="btn-modal btn-modal-birincil" id="passwordSaveBtn" onclick="saveNewPassword()">Şifreyi Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KULLANICI YÖNETİMİ — yalnızca sistem yöneticisi (admin) -->
+  <div id="kullaniciModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 720px;">
+      <div class="modal-title">👥 Kullanıcı Yönetimi</div>
+      <p class="modal-aciklama">
+        Giriş adını ve şifreyi değiştirebilirsiniz. Şifre sıfırlanan kullanıcı bir sonraki girişinde
+        kendi şifresini belirlemek zorunda kalır. Giriş adı değişince o kişinin <strong>eski
+        talepleri de yeni ada taşınır</strong>.
+      </p>
+      <div class="alan-mesaj" id="kullaniciMesaj"></div>
+      <div id="kullaniciListesi"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-modal btn-modal-ikincil" onclick="closeKullaniciModal()">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tek kullanıcı düzenleme (kullanıcı yönetiminin içinden açılır) -->
+  <div id="kullaniciDuzenleModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-title" id="kullaniciDuzenleBaslik">Kullanıcıyı Düzenle</div>
+      <p class="modal-aciklama" id="kullaniciDuzenleAciklama"></p>
+      <div class="alan-mesaj" id="kullaniciDuzenleMesaj"></div>
+
+      <div class="form-group">
+        <label>Giriş Adı:</label>
+        <input type="text" id="kullaniciYeniAd" class="form-control" autocomplete="off">
+        <div class="parola-ipucu">Küçük harf, rakam, nokta, tire ve alt çizgi. Boş bırakılırsa değişmez.</div>
+      </div>
+
+      <div class="form-group">
+        <label>Yeni Şifre:</label>
+        <div class="parola-alani">
+          <input type="password" id="kullaniciYeniParola" class="form-control" placeholder="Değiştirmek istemiyorsanız boş bırakın" autocomplete="new-password">
+          <button type="button" class="parola-goster" onclick="parolaGoruntule('kullaniciYeniParola', this)">Göster</button>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-modal btn-modal-ikincil" id="kullaniciDuzenleIptal" onclick="closeKullaniciDuzenle()">İptal</button>
+        <button type="button" class="btn-modal btn-modal-birincil" id="kullaniciDuzenleKaydet" onclick="kullaniciKaydet()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activeLoginRole = "";
+
+    /**
+     * Giriş sekmesi seçimi. `role`: 'user' | 'admin' | 'sistem'.
+     *
+     * 'sistem' sekmesi 19 Ağustos 2026'da eklendi (kullanıcı isteği). Diğer ikisinden farkı:
+     * doğrulaması **role değil** `sistemYoneticisiMi` bayrağına bakıyor — sistem yöneticisinin de
+     * rolü 'admin' olduğu için rol karşılaştırması onu "Yönetici" sekmesinden ayırt edemezdi.
+     */
+    function selectLoginRole(role) {
+      activeLoginRole = role;
+      const formSection = document.getElementById('loginFormSection');
+      const lblUser = document.getElementById('loginUserLabel');
+
+      const etiketler = {
+        user: "Saha Sorumlusu Kullanıcı Adı:",
+        admin: "Yönetici Kullanıcı Adı:",
+        sistem: "Admin Kullanıcı Adı:",
+      };
+      const dugmeler = { user: 'btnRoleUser', admin: 'btnRoleAdmin', sistem: 'btnRoleSistem' };
+
+      formSection.classList.add('active-form');
+      Object.entries(dugmeler).forEach(([deger, id]) => {
+        const btn = document.getElementById(id);
+        if (btn) btn.classList.toggle('active-role', deger === role);
+      });
+      lblUser.innerText = etiketler[role] || etiketler.admin;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // API KATMANI
+    //
+    // Buradaki her şey daha önce sayfanın içinde duruyordu: kullanıcı listesi ve parolalar
+    // (`userCredentials`), kablo envanteri (`cableDatabase`) ve kayıtların kendisi (`mockData`).
+    // Hiçbiri sunucuya gitmiyordu; sayfa yenilendiğinde girilen her kayıt kayboluyordu ve
+    // parola kontrolü tarayıcıda yapıldığı için aslında hiç kimseyi durdurmuyordu.
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    async function api(yol, secenekler = {}) {
+      const yanit = await fetch(yol, {
+        // Oturum çerezi SameSite=Strict; aynı origin'den servis edildiğimiz için bu yeterli.
+        credentials: 'same-origin',
+        ...secenekler,
+      });
+
+      if (yanit.status === 204) return null;
+
+      let govde = null;
+      const tur = yanit.headers.get('content-type') || '';
+      if (tur.includes('application/json')) {
+        govde = await yanit.json().catch(() => null);
+      }
+
+      if (!yanit.ok) {
+        const hata = new Error((govde && (govde.hata || govde.title)) || `İstek başarısız (HTTP ${yanit.status})`);
+        hata.durum = yanit.status;
+        hata.kod = govde && govde.kod;
+        hata.govde = govde;
+        throw hata;
+      }
+      return govde;
+    }
+
+    // Oturum düşerse kullanıcıyı giriş ekranına al. Aksi hâlde ekran "boş liste" gösterir ve
+    // kullanıcı verisinin silindiğini sanır.
+    function hataGoster(hata) {
+      if (hata && hata.durum === 401) {
+        alert("Oturumunuz sona erdi. Lütfen tekrar giriş yapın.");
+        oturumuTemizle();
+        return;
+      }
+      if (hata && hata.kod === 'PAROLA_DEGISTIR') {
+        openChangePasswordModal(true);
+        return;
+      }
+      alert((hata && hata.message) || "Beklenmeyen bir hata oluştu.");
+    }
+
+    let uploadedPhotoDosyasi = null;   // yüklenmeyi bekleyen dosya (base64 DEĞİL)
+    let uploadedPhotoOnizleme = "";    // yalnızca ekranda gösterim için
+    let fotografSilinecek = false;
+
+    let talepler = [];                 // sunucudan gelen kayıtlar
+    let statulerListesi = [];          // statü seçenekleri (sunucudan, tek kaynak)
+    let currentLoggedInKey = "";
+    let currentLoggedInUser = "";
+    let currentLoggedInRole = "";
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Sayfa yenilendiğinde oturumu sunucudan geri kur. Bu olmadan çerez geçerli olsa bile
+      // kullanıcı her yenilemede giriş ekranına düşerdi.
+      oturumuGeriKur();
+
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.form-group')) {
+          const listEl = document.getElementById('autocompleteList');
+          if (listEl) listEl.innerHTML = '';
+        }
+      });
+
+      const photoInput = document.getElementById('inputPhoto');
+      if (photoInput) {
+        photoInput.addEventListener('change', function(e) {
+          const file = e.target.files[0];
+          if (file) {
+            // Dosyanın kendisi tutulur; sunucuya multipart olarak gider. base64'e çevirip
+            // kayıtla birlikte JSON'da göndermek veriyi ~%33 şişiriyor ve her listeleme
+            // sorgusunun tüm fotoğrafları taşımasına yol açıyordu.
+            uploadedPhotoDosyasi = file;
+            fotografSilinecek = false;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+              uploadedPhotoOnizleme = event.target.result;
+              const prevImg = document.getElementById('photoPreviewImg');
+              const prevContainer = document.getElementById('photoPreviewContainer');
+              if (prevImg && prevContainer) {
+                prevImg.src = uploadedPhotoOnizleme;
+                prevContainer.style.display = 'inline-block';
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+
+      const guzergahInput = document.getElementById('inputGuzergah');
+      if (guzergahInput) {
+        guzergahInput.addEventListener('change', function(e) {
+          const file = e.target.files[0];
+          if (!file) { guzergahSifirla(); return; }
+
+          // Doğrulama UZANTI üzerinden — sunucudaki kuralın aynısı. Tarayıcının bildirdiği içerik
+          // türüne bakılmaz: .kmz için çoğu tarayıcı "application/octet-stream" gönderir.
+          const ad = file.name.toLowerCase();
+          if (!ad.endsWith('.kml') && !ad.endsWith('.kmz')) {
+            alert("Sadece .kml veya .kmz uzantılı dosya yükleyebilirsiniz.");
+            guzergahSifirla();
+            return;
+          }
+
+          guzergahDosyasi = file;
+          guzergahSilinecek = false;
+          guzergahDurumGoster(file.name);
+        });
+      }
+    });
+
+    // Fotoğraf Büyütme ve Silme Fonksiyonları
+    function openPhotoModal(src) {
+      if (!uploadedPhotoOnizleme) return;
+      const modal = document.getElementById('photoModal');
+      const modalImg = document.getElementById('modalExpandedImg');
+      modalImg.src = src;
+      modal.style.display = 'flex';
+    }
+    function closePhotoModal() {
+      document.getElementById('photoModal').style.display = 'none';
+    }
+    function deleteUploadedPhoto() {
+      uploadedPhotoDosyasi = null;
+      uploadedPhotoOnizleme = "";
+      // Düzenlenen kayıtta zaten sunucuda duran bir fotoğraf varsa, kaydetme sırasında
+      // silinmesi gerektiğini işaretle — yalnızca ekrandan kaldırmak yetmez.
+      fotografSilinecek = true;
+      document.getElementById('photoPreviewImg').src = "";
+      document.getElementById('photoPreviewContainer').style.display = 'none';
+      document.getElementById('inputPhoto').value = "";
+    }
+
+    let nosidAramaZamanlayici = null;
+
+    function filterNosid(val) {
+      const listEl = document.getElementById('autocompleteList');
+      if (nosidAramaZamanlayici) clearTimeout(nosidAramaZamanlayici);
+
+      const keyword = (val || '').trim();
+      if (keyword.length === 0) { listEl.innerHTML = ''; return; }
+
+      // Arama SUNUCUDA yapılır (ILIKE). Katalog 943+ kayıt olduğundan tümünü istemciye çekip
+      // yerelde filtrelemek, ilk 200 dışındaki NOSID'leri sessizce görünmez kılardı. Yazarken
+      // her tuşta istek atmamak için ~250 ms geciktirilir.
+      nosidAramaZamanlayici = setTimeout(async () => {
+        try {
+          const sonuc = await api('/api/lookup/katalog?ara=' + encodeURIComponent(keyword)) || [];
+          listEl.innerHTML = '';
+          sonuc.slice(0, 20).forEach(kayit => {
+            const div = document.createElement('div');
+            div.innerText = kayit.nosid;
+            div.onclick = function() {
+              document.getElementById('inputNosid').value = kayit.nosid;
+              listEl.innerHTML = '';
+              autoFillCableData(kayit);
+            };
+            listEl.appendChild(div);
+          });
+        } catch (hata) {
+          // Arama başarısızsa listeyi boşalt; kullanıcının yazmasını engelleme.
+          listEl.innerHTML = '';
+        }
+      }, 250);
+    }
+
+    // Seçilen katalog kaydından (sunucu yanıtı) diğer alanları doldurur.
+    //
+    // ⚠️ Güzergah uzunluğu BİLEREK doldurulmuyor. Katalogdaki `uzunluk` envanterin kablo uzunluğu;
+    // sahada ölçülen güzergâh uzunluğu ondan farklı olabilir. Alan otomatik dolduğunda kullanıcı
+    // çoğunlukla üstüne yazmıyor ve envanter değeri "ölçüm" gibi kaydediliyordu. Kullanıcı artık
+    // metre cinsinden gerçek değeri kendisi girer (alan zorunlu).
+    function autoFillCableData(item) {
+      if (!item) return;
+      document.getElementById('inputSaha').value = item.sahaSehir || '';
+      document.getElementById('inputLocA').value = item.locationA || '';
+      document.getElementById('inputLocB').value = item.locationB || '';
+    }
+
+    /**
+     * Listede olmayan bir proje kapsamını ekler (yalnızca yönetici).
+     *
+     * Sunucu ucu Roles=admin ile korunuyor; buradaki düğme yalnızca görünürlüğü ayarlar.
+     * Eklendikten sonra liste sunucudan tazelenir — yerelde <option> uydurmak, sunucudaki listeyle
+     * ekrandakinin sessizce ayrışmasına açık kapı bırakırdı.
+     */
+    async function kapsamEkle() {
+      const ad = prompt("Eklenecek proje kapsamının adı:", "");
+      if (ad === null) return;
+
+      const temiz = ad.trim();
+      if (!temiz) { alert("Kapsam adı boş olamaz."); return; }
+
+      try {
+        const kapsam = await api('/api/lookup/kapsamlar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ad: temiz }),
+        });
+
+        await listeleriYukle();
+        // Yeni eklenen kapsamı seçili bırak: yönetici zaten onu kullanmak için ekledi.
+        document.getElementById('inputProje').value = kapsam.ad;
+        alert(`"${kapsam.ad}" listeye eklendi.`);
+      } catch (hata) {
+        hataGoster(hata);
+      }
+    }
+
+    // --- Güzergah dosyası (.kml/.kmz) ---
+    // GPS toplama (getLiveLocation / updateMapManual / parseCoord ve gömülü harita çerçeveleri)
+    // buradan kaldırıldı: iki uçlu koordinat sahada neredeyse hiç dolmuyordu ve dolduğunda bile
+    // güzergâhın kendisini değil yalnızca uçlarını anlatıyordu.
+
+    /** Yüklenmeyi bekleyen dosya; kayıt yazıldıktan SONRA ayrı istekle gider (fotoğraf deseni). */
+    let guzergahDosyasi = null;
+    /** Düzenlenen kayıtta sunucuda duran dosyanın silinmesi gerektiğini işaretler. */
+    let guzergahSilinecek = false;
+
+    /** Dosya adı satırını gösterir/gizler. `ad` boşsa kutu kapanır. */
+    function guzergahDurumGoster(ad) {
+      const kutu = document.getElementById('guzergahDurum');
+      const etiket = document.getElementById('guzergahDosyaAdi');
+      if (!kutu || !etiket) return;
+      if (ad) {
+        etiket.innerText = '🗺️ ' + ad;
+        kutu.style.display = 'flex';
+      } else {
+        etiket.innerText = '';
+        kutu.style.display = 'none';
+      }
+    }
+
+    function guzergahKaldir() {
+      guzergahDosyasi = null;
+      // Yalnızca ekrandan kaldırmak yetmez: kayıtta zaten duran dosya varsa kaydetme sırasında
+      // silinmesi gerektiğini işaretle.
+      guzergahSilinecek = true;
+      document.getElementById('inputGuzergah').value = "";
+      guzergahDurumGoster("");
+    }
+
+    function guzergahSifirla() {
+      guzergahDosyasi = null;
+      guzergahSilinecek = false;
+      const inp = document.getElementById('inputGuzergah');
+      if (inp) inp.value = "";
+      guzergahDurumGoster("");
+    }
+
+    async function handleLoginSubmit(event) {
+      event.preventDefault();
+      const uInput = document.getElementById('loginUser').value.trim().toLowerCase();
+      const pInput = document.getElementById('loginPass').value;
+
+      try {
+        const oturum = await api('/api/oturum/giris', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kullaniciAdi: uInput, parola: pInput }),
+        });
+
+        // Rol ve yetki SUNUCUDAN gelir; sekme yalnızca kullanıcının hangi kapıdan girdiğini
+        // söylüyor ve yanlış kapıda uyarı veriyor — bir yetki kararı değil.
+        //
+        // 'sistem' sekmesi role DEĞİL `sistemYoneticisiMi` bayrağına bakar: sistem yöneticisinin
+        // rolü de 'admin' olduğu için rol karşılaştırması onu yöneticilerden ayırt edemez.
+        const sekmeUymuyor = activeLoginRole === 'sistem'
+          ? !oturum.sistemYoneticisiMi
+          : activeLoginRole && oturum.rol !== activeLoginRole;
+
+        if (sekmeUymuyor) {
+          const hesapTuru = oturum.sistemYoneticisiMi
+            ? 'Admin'
+            : (oturum.rol === 'admin' ? 'Yönetici' : 'Saha Kullanıcısı');
+          alert(`Bu hesap "${hesapTuru}" yetkisinde. O sekmeden giriş yapın.`);
+          await api('/api/oturum/cikis', { method: 'POST' }).catch(() => {});
+          return;
+        }
+
+        await oturumuBaslat(oturum);
+      } catch (hata) {
+        if (hata.durum === 401) {
+          alert("Hatalı kullanıcı adı veya parola!");
+          return;
+        }
+        hataGoster(hata);
+      }
+    }
+
+    async function oturumuGeriKur() {
+      try {
+        const oturum = await api('/api/oturum/ben');
+        await oturumuBaslat(oturum);
+      } catch (hata) {
+        // 401 normaldir: henüz giriş yapılmamış. Giriş ekranı zaten açık.
+      }
+    }
+
+    async function oturumuBaslat(oturum) {
+      currentLoggedInKey = oturum.kullaniciAdi;
+      currentLoggedInUser = oturum.adSoyad;
+      currentLoggedInRole = oturum.rol;
+
+      // Katalog yükleme ve kapsam ekleme yalnızca yöneticide görünür (uçlar zaten sunucuda
+      // Roles=admin ile korunuyor; buradaki gizleme sadece ekranı sadeleştirir).
+      const yoneticiMi = oturum.rol === 'admin';
+      const katalogBtn = document.getElementById('katalogYukleBtn');
+      if (katalogBtn) katalogBtn.style.display = yoneticiMi ? 'inline-block' : 'none';
+      const kapsamBtn = document.getElementById('kapsamEkleBtn');
+      if (kapsamBtn) kapsamBtn.style.display = yoneticiMi ? 'inline-flex' : 'none';
+
+      // Kullanıcı yönetimi yalnızca `admin` hesabında: yetki rolde değil ayrı bir bayrakta,
+      // dolayısıyla diğer üç yönetici bu düğmeyi görmez.
+      const kullaniciBtn = document.getElementById('kullaniciYonetimBtn');
+      if (kullaniciBtn) kullaniciBtn.style.display = oturum.sistemYoneticisiMi ? 'inline-flex' : 'none';
+
+      document.getElementById('loginView').classList.remove('active');
+      document.getElementById('formView').classList.add('active');
+      document.getElementById('topNavbar').style.display = 'flex';
+      document.getElementById('profileSelect').value = oturum.adSoyad;
+
+      if (oturum.ilkGirisMi) {
+        // Zorunluluk sunucuda da uygulanıyor (veri uçları 403/PAROLA_DEGISTIR döner);
+        // buradaki pencere sadece kullanıcıya neden takıldığını anlatıyor.
+        // ~~`alert()` ile önce bir uyarı~~: iki üst üste kutu gereksizdi, açıklama artık pencerenin
+        // kendi içinde.
+        openChangePasswordModal(true);
+        return;
+      }
+
+      await listeleriYukle();
+      await talepleriYukle();
+    }
+
+    function oturumuTemizle() {
+      currentLoggedInKey = ""; currentLoggedInUser = ""; currentLoggedInRole = ""; activeLoginRole = "";
+      talepler = [];
+      document.getElementById('loginUser').value = ""; document.getElementById('loginPass').value = "";
+      document.getElementById('loginFormSection').classList.remove('active-form');
+      document.querySelectorAll('.login-role-btn').forEach(b => b.classList.remove('active-role'));
+      document.getElementById('formView').classList.remove('active');
+      document.getElementById('listView').classList.remove('active');
+      document.getElementById('topNavbar').style.display = 'none';
+      document.getElementById('loginView').classList.add('active');
+    }
+
+    /** Açılır listeleri ve kablo kataloğunu sunucudan alır — tek doğruluk kaynağı orası. */
+    async function listeleriYukle() {
+      try {
+        // Katalog artık topluca çekilmez; NOSID araması sunucuda (filterNosid) yapılır.
+        const [riskler, statuler, kapsamlar] = await Promise.all([
+          api('/api/lookup/riskler'),
+          api('/api/lookup/statuler'),
+          api('/api/lookup/kapsamlar'),
+        ]);
+
+        statulerListesi = statuler || [];
+        secenekleriDoldur('inputRisk', riskler);
+        secenekleriDoldur('inputStatu', statuler);
+        secenekleriDoldur('inputProje', kapsamlar);
+      } catch (hata) {
+        hataGoster(hata);
+      }
+    }
+
+    function secenekleriDoldur(elemanId, degerler) {
+      const el = document.getElementById(elemanId);
+      if (!el || !degerler) return;
+      const secili = el.value;
+      el.innerHTML = '';
+      degerler.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        el.appendChild(opt);
+      });
+      if (degerler.includes(secili)) el.value = secili;
+    }
+
+    async function talepleriYukle() {
+      try {
+        talepler = await api('/api/kablo') || [];
+        renderTable();
+      } catch (hata) {
+        hataGoster(hata);
+      }
+    }
+
+    /** Pencere içi mesaj şeridi — `alert()` yerine. `tur`: 'hata' | 'basari' | 'bilgi'. */
+    function mesajGoster(elemanId, tur, metin) {
+      const el = document.getElementById(elemanId);
+      if (!el) return;
+      el.className = 'alan-mesaj gorunur ' + tur;
+      el.innerText = metin;
+    }
+
+    function mesajTemizle(elemanId) {
+      const el = document.getElementById(elemanId);
+      if (el) { el.className = 'alan-mesaj'; el.innerText = ''; }
+    }
+
+    /** Parola alanını görünür/gizli yapar; düğme metni durumu söyler. */
+    function parolaGoruntule(alanId, dugme) {
+      const alan = document.getElementById(alanId);
+      if (!alan) return;
+      const gizli = alan.type === 'password';
+      alan.type = gizli ? 'text' : 'password';
+      dugme.innerText = gizli ? 'Gizle' : 'Göster';
+    }
+
+    // ~~`parolaOlcerGuncelle` (zayıf/orta/güçlü çubuğu)~~ kaldırıldı (kullanıcı isteği, 18 Ağustos
+    // 2026). Kabul kuralı tek ve nesnel: en az 6 karakter, denetim sunucuda.
+
+    /**
+     * Parola penceresini açar.
+     *
+     * `ilkGiris` kipinde metinler "oluştur" diline geçer ve İptal düğmesi kapanır: sunucu bu
+     * kullanıcıya veri uçlarını zaten kapatmış durumda (403 PAROLA_DEGISTIR), pencereyi kapatmak
+     * kullanıcıyı hiçbir şey yapamadığı boş bir ekranda bırakırdı.
+     */
+    function openChangePasswordModal(ilkGiris) {
+      document.getElementById('mevcutPasswordInput').value = "";
+      document.getElementById('newPasswordInput').value = "";
+      document.getElementById('newPasswordInput2').value = "";
+      mesajTemizle('passwordModalMesaj');
+
+      const baslik = document.getElementById('passwordModalTitle');
+      const aciklama = document.getElementById('passwordModalAciklama');
+      const iptal = document.getElementById('passwordCancelBtn');
+      const kaydet = document.getElementById('passwordSaveBtn');
+
+      if (ilkGiris) {
+        baslik.innerText = '🔐 Şifrenizi Oluşturun';
+        aciklama.innerText =
+          'İlk girişiniz. Devam etmeden önce size verilen geçici şifreyi kendi şifrenizle değiştirmelisiniz.';
+        iptal.style.display = 'none';
+        kaydet.innerText = 'Şifremi Oluştur';
+        mesajGoster('passwordModalMesaj', 'bilgi',
+          'Mevcut şifre alanına size verilen geçici şifreyi yazın.');
+      } else {
+        baslik.innerText = '🔑 Şifre Güncelle';
+        aciklama.innerText = 'Mevcut şifrenizi doğrulayıp yeni bir şifre belirleyin.';
+        iptal.style.display = '';
+        kaydet.innerText = 'Şifreyi Kaydet';
+      }
+
+      kaydet.disabled = false;
+      document.getElementById('passwordModal').style.display = 'flex';
+      document.getElementById('mevcutPasswordInput').focus();
+    }
+
+    function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
+
+    async function saveNewPassword() {
+      const mevcut = document.getElementById('mevcutPasswordInput').value;
+      const yeni = document.getElementById('newPasswordInput').value;
+      const yeniTekrar = document.getElementById('newPasswordInput2').value;
+      const kaydet = document.getElementById('passwordSaveBtn');
+
+      mesajTemizle('passwordModalMesaj');
+
+      if (!mevcut) { mesajGoster('passwordModalMesaj', 'hata', 'Mevcut şifrenizi girin.'); return; }
+      if (!yeni) { mesajGoster('passwordModalMesaj', 'hata', 'Yeni şifrenizi girin.'); return; }
+      if (yeni.length < 6) { mesajGoster('passwordModalMesaj', 'hata', 'Yeni şifre en az 6 karakter olmalıdır.'); return; }
+      if (yeni !== yeniTekrar) { mesajGoster('passwordModalMesaj', 'hata', 'İki şifre alanı birbirini tutmuyor.'); return; }
+      if (yeni === mevcut) { mesajGoster('passwordModalMesaj', 'hata', 'Yeni şifre eskisiyle aynı olamaz.'); return; }
+
+      kaydet.disabled = true;
+      kaydet.innerText = 'Kaydediliyor…';
+      try {
+        const oturum = await api('/api/oturum/parola', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mevcutParola: mevcut, yeniParola: yeni }),
+        });
+        mesajGoster('passwordModalMesaj', 'basari', 'Şifreniz güncellendi.');
+        // Kısa bir an başarı mesajı görünsün; sonra pencere kapanıp oturum tazelenir.
+        setTimeout(async () => {
+          closePasswordModal();
+          await oturumuBaslat(oturum);
+        }, 700);
+      } catch (hata) {
+        kaydet.disabled = false;
+        kaydet.innerText = 'Şifreyi Kaydet';
+        // Oturum düşmesi dışındaki her hata pencerenin İÇİNDE gösterilir; kullanıcı alanları
+        // görürken hatayı okur.
+        if (hata && hata.durum === 401) { hataGoster(hata); return; }
+        mesajGoster('passwordModalMesaj', 'hata', (hata && hata.message) || 'Şifre güncellenemedi.');
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // KULLANICI YÖNETİMİ — yalnızca sistem yöneticisi (`admin`)
+    //
+    // Yetki sunucuda `SistemYoneticisiMi` bayrağına bağlı; buradaki gizleme yalnızca ekranı
+    // sadeleştirir. Yetkisiz bir istek 403 döner.
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    let duzenlenenKullanici = null;
+
+    async function openKullaniciModal() {
+      mesajTemizle('kullaniciMesaj');
+      document.getElementById('kullaniciListesi').innerHTML =
+        '<div class="parola-ipucu">Yükleniyor…</div>';
+      document.getElementById('kullaniciModal').style.display = 'flex';
+      await kullanicilariYukle();
+    }
+
+    function closeKullaniciModal() {
+      document.getElementById('kullaniciModal').style.display = 'none';
+    }
+
+    async function kullanicilariYukle() {
+      try {
+        const kullanicilar = await api('/api/kullanicilar') || [];
+        const satirlar = kullanicilar.map(k => {
+          const rolEtiketi = k.sistemYoneticisiMi
+            ? '<span class="rol-rozet sistem">Sistem Yöneticisi</span>'
+            : (k.rol === 'admin'
+              ? '<span class="rol-rozet yonetici">Yönetici</span>'
+              : '<span class="rol-rozet">Saha</span>');
+          const durum = k.ilkGirisMi
+            ? '<span class="parola-ipucu">Şifre bekliyor</span>'
+            : '<span class="parola-ipucu">Aktif</span>';
+          return `
+            <tr>
+              <td><span class="kullanici-adi">${sanitizeHTML(k.kullaniciAdi)}</span></td>
+              <td>${sanitizeHTML(k.adSoyad)}</td>
+              <td>${rolEtiketi}</td>
+              <td>${durum}</td>
+              <td style="text-align:right;">
+                <button type="button" class="btn-list-action btn-form-gir" style="padding:6px 12px; font-size:12px;"
+                        onclick="openKullaniciDuzenle('${sanitizeHTML(k.kullaniciAdi)}', '${sanitizeHTML(k.adSoyad)}')">Düzenle</button>
+              </td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('kullaniciListesi').innerHTML = `
+          <table class="kullanici-tablo">
+            <thead><tr><th>Giriş Adı</th><th>Ad Soyad</th><th>Rol</th><th>Durum</th><th></th></tr></thead>
+            <tbody>${satirlar}</tbody>
+          </table>`;
+      } catch (hata) {
+        document.getElementById('kullaniciListesi').innerHTML = '';
+        mesajGoster('kullaniciMesaj', 'hata', (hata && hata.message) || 'Kullanıcılar yüklenemedi.');
+      }
+    }
+
+    function openKullaniciDuzenle(kullaniciAdi, adSoyad) {
+      duzenlenenKullanici = kullaniciAdi;
+      document.getElementById('kullaniciDuzenleBaslik').innerText = '✏️ ' + adSoyad;
+      document.getElementById('kullaniciDuzenleAciklama').innerText =
+        'Giriş adını ve/veya şifreyi değiştirin. Boş bıraktığınız alan değişmez.';
+      document.getElementById('kullaniciYeniAd').value = kullaniciAdi;
+      document.getElementById('kullaniciYeniParola').value = '';
+      mesajTemizle('kullaniciDuzenleMesaj');
+      document.getElementById('kullaniciDuzenleKaydet').disabled = false;
+      document.getElementById('kullaniciDuzenleKaydet').innerText = 'Kaydet';
+      document.getElementById('kullaniciDuzenleModal').style.display = 'flex';
+    }
+
+    function closeKullaniciDuzenle() {
+      document.getElementById('kullaniciDuzenleModal').style.display = 'none';
+      duzenlenenKullanici = null;
+    }
+
+    async function kullaniciKaydet() {
+      if (!duzenlenenKullanici) return;
+      const yeniAd = document.getElementById('kullaniciYeniAd').value.trim();
+      const yeniParola = document.getElementById('kullaniciYeniParola').value;
+      const kaydet = document.getElementById('kullaniciDuzenleKaydet');
+
+      mesajTemizle('kullaniciDuzenleMesaj');
+
+      const adDegisiyor = yeniAd !== '' && yeniAd !== duzenlenenKullanici;
+      if (!adDegisiyor && !yeniParola) {
+        mesajGoster('kullaniciDuzenleMesaj', 'hata', 'Yeni bir giriş adı ya da şifre girin.');
+        return;
+      }
+      if (yeniParola && yeniParola.length < 6) {
+        mesajGoster('kullaniciDuzenleMesaj', 'hata', 'Yeni şifre en az 6 karakter olmalıdır.');
+        return;
+      }
+
+      kaydet.disabled = true;
+      kaydet.innerText = 'Kaydediliyor…';
+      try {
+        await api('/api/kullanicilar/' + encodeURIComponent(duzenlenenKullanici), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            yeniKullaniciAdi: adDegisiyor ? yeniAd : null,
+            yeniParola: yeniParola || null,
+          }),
+        });
+        closeKullaniciDuzenle();
+        mesajGoster('kullaniciMesaj', 'basari',
+          adDegisiyor
+            ? `Giriş adı "${yeniAd}" olarak güncellendi; eski talepleri de taşındı.`
+            : 'Şifre sıfırlandı; kullanıcı bir sonraki girişinde kendi şifresini belirleyecek.');
+        await kullanicilariYukle();
+      } catch (hata) {
+        kaydet.disabled = false;
+        kaydet.innerText = 'Kaydet';
+        mesajGoster('kullaniciDuzenleMesaj', 'hata', (hata && hata.message) || 'Kullanıcı güncellenemedi.');
+      }
+    }
+
+    async function handleLogout() {
+      try { await api('/api/oturum/cikis', { method: 'POST' }); } catch (hata) { /* yine de temizle */ }
+      oturumuTemizle();
+    }
+
+    function toggleMainView() {
+      const formView = document.getElementById('formView');
+      const listView = document.getElementById('listView');
+      const btn = document.getElementById('toggleViewBtn');
+      if (formView.classList.contains('active')) {
+        formView.classList.remove('active'); listView.classList.add('active');
+        btn.innerText = "📝 Forma Dön"; renderTable();
+      } else {
+        listView.classList.remove('active'); formView.classList.add('active');
+        btn.innerText = "📊 Talep Listesine Git";
+      }
+    }
+
+    function sanitizeHTML(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // Türkçe statü → renk sınıfı. toUpperCase KULLANMA: "İşleniyor".toUpperCase() Türkçe İ/ı'yı bozar.
+    function statuCss(statu) {
+      const s = String(statu || '').trim();
+      if (s === 'İşleniyor') return 'statu-progress';
+      if (s === 'Tamamlandı') return 'statu-resolved';
+      if (s === 'İptal Edildi') return 'statu-cancel';
+      return 'statu-open'; // Onay Bekliyor + bilinmeyen
+    }
+
+    function getStatusBadge(statu) {
+      const s = String(statu || '').trim();
+      return `<span class="badge ${statuCss(s)}">${sanitizeHTML(s)}</span>`;
+    }
+
+    // Satır içi hızlı statü menüsü — renkli pill görünümlü <select>.
+    function statuSelect(item) {
+      const cur = String(item.statu || '').trim();
+      if (!statulerListesi.length) return getStatusBadge(cur);
+      const opts = statulerListesi.map(s =>
+        `<option value="${sanitizeHTML(s)}"${s === cur ? ' selected' : ''}>${sanitizeHTML(s)}</option>`
+      ).join('');
+      return `<select class="statu-select ${statuCss(cur)}" title="Statüyü değiştir"
+                onclick="event.stopPropagation()" onchange="hizliStatuDegistir(${item.id}, this)">${opts}</select>`;
+    }
+
+    // Satırdan statü değiştir: isteğe bağlı not sorar, PUT eder, geçmiş satırı yazılır.
+    async function hizliStatuDegistir(id, sel) {
+      const yeni = sel.value;
+      const kayit = talepler.find(r => r.id === Number(id));
+      const eski = kayit ? kayit.statu : '';
+      if (yeni === eski) return;
+
+      const not = prompt(`Statü "${yeni}" olarak değiştirilecek.\nAçıklama (isteğe bağlı):`, '');
+      if (not === null) { sel.value = eski; sel.className = 'statu-select ' + statuCss(eski); return; }
+
+      try {
+        await api(`/api/kablo/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ statu: yeni, sonAciklama: not || null, surum: kayit ? kayit.surum : 0 }),
+        });
+        await talepleriYukle();
+      } catch (hata) {
+        if (hata && hata.durum === 409) {
+          alert(hata.message || "Bu kayıt siz bakarken başkası tarafından değiştirildi. Liste yenilendi.");
+          await talepleriYukle();
+          return;
+        }
+        sel.value = eski;
+        sel.className = 'statu-select ' + statuCss(eski);
+        hataGoster(hata);
+      }
+    }
+
+    function getRiskBadge(risk) {
+      const r = String(risk).trim();
+      let css = "risk-low";
+      if (r.startsWith("2")) css = "risk-medium";
+      else if (r.startsWith("3")) css = "risk-high";
+      else if (r.startsWith("4")) css = "risk-critical";
+      return `<span class="badge ${css}">${sanitizeHTML(risk)}</span>`;
+    }
+
+    // `mockData` kaldırıldı: kayıtlar artık `talepler` dizisinde ve kaynağı sunucu.
+    // Sahte başlangıç kaydı da gitti — gerçek verinin yanında görünüp kafa karıştırıyordu.
+
+    function openNewFormView() {
+      document.getElementById('formHeaderTitle').innerText = "Saha Altyapı/Kablo Durum Formu";
+      document.getElementById('cableForm').reset();
+      document.getElementById('editRecordId').value = "";
+      document.getElementById('editFieldsSection').style.display = "none";
+      guzergahSifirla();
+      uploadedPhotoDosyasi = null;
+      uploadedPhotoOnizleme = "";
+      fotografSilinecek = false;
+      document.getElementById('photoPreviewContainer').style.display = 'none';
+      document.getElementById('inputPhoto').value = "";
+      kimlikAlanlariniKilitle(false);
+
+      document.getElementById('formView').classList.add('active');
+      document.getElementById('listView').classList.remove('active');
+    }
+
+    // Önizleme Modalı
+    function openPreviewModal() {
+      const nosid = document.getElementById('inputNosid').value;
+      if (!nosid) { alert("Lütfen bir NOSID / Kablo Adı seçiniz!"); return; }
+
+      const editId = document.getElementById('editRecordId').value;
+
+      // Zorunlu alanlar BURADA denetlenir. Formun gönderme düğmesi type="button" olduğu için
+      // tarayıcının kendi `required` denetimi hiç çalışmaz — kontrol yalnızca öznitelikte
+      // bırakılsaydı alan boşken önizleme açılır ve hata ancak sunucudan dönerdi.
+      // Düzenlemede alan kilitli ve sunucunun PUT ucu onu kabul etmiyor; orada denetlenmez.
+      const uzunlukDeger = document.getElementById('inputUzunluk').value.trim();
+      if (!editId) {
+        const uzunlukSayi = parseInt(uzunlukDeger, 10);
+        if (uzunlukDeger === "" || isNaN(uzunlukSayi) || uzunlukSayi < 1) {
+          alert("Güzergah uzunluğu zorunludur ve metre cinsinden pozitif bir sayı olmalıdır.");
+          document.getElementById('inputUzunluk').focus();
+          return;
+        }
+      }
+
+      const saha = document.getElementById('inputSaha').value;
+      const proje = document.getElementById('inputProje').value;
+      const locA = document.getElementById('inputLocA').value;
+      const locB = document.getElementById('inputLocB').value;
+      const ekAraligi = document.getElementById('inputLocB_ek').value;
+      const uzunluk = uzunlukDeger;
+      const risk = document.getElementById('inputRisk').value;
+      const ilkAciklama = document.getElementById('inputDesc').value;
+      const statu = editId ? document.getElementById('inputStatu').value : "Onay Bekliyor";
+      const aciklama2 = editId ? document.getElementById('inputDesc2').value : "-";
+
+      const previewBody = document.getElementById('previewBody');
+      previewBody.innerHTML = `
+        <div class="preview-item"><span>NOSID:</span> ${sanitizeHTML(nosid)}</div>
+        <div class="preview-item"><span>Saha:</span> ${sanitizeHTML(saha)}</div>
+        <div class="preview-item"><span>Proje Kapsamı:</span> ${sanitizeHTML(proje)}</div>
+        <div class="preview-item"><span>Location A:</span> ${sanitizeHTML(locA)}</div>
+        <div class="preview-item"><span>Location B:</span> ${sanitizeHTML(locB)}</div>
+        <div class="preview-item"><span>Ek Aralığı:</span> ${sanitizeHTML(ekAraligi)}</div>
+        <div class="preview-item"><span>Uzunluk:</span> ${sanitizeHTML(uzunluk)} m</div>
+        <div class="preview-item"><span>Risk Seviyesi:</span> ${sanitizeHTML(risk)}</div>
+        <div class="preview-item"><span>Statü:</span> ${sanitizeHTML(statu)}</div>
+        <div class="preview-item"><span>Düzenleme Notu:</span> ${sanitizeHTML(aciklama2)}</div>
+        <div class="preview-item"><span>İlk Açıklama:</span> ${sanitizeHTML(ilkAciklama)}</div>
+        <div class="preview-item"><span>Fotoğraf:</span> ${uploadedPhotoOnizleme ? '📷 Yüklendi' : 'Yok'}</div>
+        <div class="preview-item"><span>Güzergah Dosyası:</span> ${guzergahDosyasi ? '🗺️ ' + sanitizeHTML(guzergahDosyasi.name) : 'Yok'}</div>
+      `;
+      document.getElementById('previewModal').style.display = 'flex';
+    }
+
+    function closePreviewModal() { document.getElementById('previewModal').style.display = 'none'; }
+    function confirmAndSubmit() { closePreviewModal(); processFormSubmission(); }
+
+    // İşlem sütunu: sade kebab (⋮) butonu → tıklayınca menü DİNAMİK oluşturulup <body>'ye eklenir.
+    // Menü position:fixed ve body altında olduğundan tablonun yatay kaydırma kutusu onu KIRPMAZ.
+    let islemMenuEl = null;
+    let islemMenuId = null;
+
+    function islemMenuKapat() {
+      if (islemMenuEl) { islemMenuEl.remove(); islemMenuEl = null; }
+      islemMenuId = null;
+    }
+
+    function islemMenuAc(ev, id) {
+      ev.stopPropagation();
+      if (islemMenuId === id) { islemMenuKapat(); return; }   // aynı butona tekrar → kapat
+      islemMenuKapat();
+      islemMenuId = id;
+
+      const menu = document.createElement('div');
+      menu.className = 'islem-menu';
+      menu.innerHTML =
+        '<button type="button" data-a="edit">✏️ Düzenle</button>' +
+        '<button type="button" data-a="guzergah">🗺️ Güzergah Dosyasını İndir</button>' +
+        '<button type="button" class="tehlike" data-a="sil">🗑️ Sil</button>';
+      menu.addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (b) islemCalistir(b.getAttribute('data-a'));
+      });
+      document.body.appendChild(menu);
+      islemMenuEl = menu;
+
+      const r = ev.currentTarget.getBoundingClientRect();
+      let left = r.right - menu.offsetWidth;            // butonun sağına hizala
+      if (left < 8) left = 8;
+      let top = r.bottom + 4;                           // butonun altına
+      if (top + menu.offsetHeight > window.innerHeight - 8) top = r.top - menu.offsetHeight - 4; // taşarsa üste
+      menu.style.left = left + 'px';
+      menu.style.top = top + 'px';
+    }
+
+    function islemCalistir(secim) {
+      const id = islemMenuId;
+      islemMenuKapat();
+      if (id == null) return;
+      if (secim === 'edit') editRecord(id);
+      else if (secim === 'guzergah') downloadGuzergah(id);
+      else if (secim === 'sil') deleteRecord(id);
+    }
+
+    // Dışarı tıklama / kaydırma / Esc menüyü kapatır (capture: iç tablo kaydırmasını da yakalar).
+    document.addEventListener('click', (e) => {
+      if (islemMenuEl && !islemMenuEl.contains(e.target)) islemMenuKapat();
+    });
+    window.addEventListener('scroll', islemMenuKapat, true);
+    window.addEventListener('resize', islemMenuKapat);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') islemMenuKapat(); });
+
+    function renderTable() {
+      const tbody = document.getElementById('table-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      // Rol süzgeci burada YOK: sunucu zaten yalnızca görme yetkisi olan kayıtları döndürüyor
+      // (KabloController.YetkiliSorgu). Süzgeci burada tekrarlamak, iki yerde yaşayan ve
+      // biri unutulduğunda sessizce bozulan ikinci bir kural üretirdi.
+      const filtered = talepler;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="16" style="text-align:center; padding:20px; color:#64748b;">Kayıt bulunamadı.</td></tr>';
+      } else {
+        filtered.forEach(item => {
+          const row = `
+            <tr>
+              <td>#${sanitizeHTML(item.id)}</td>
+              <td>${sanitizeHTML(item.sahaSehir)}</td>
+              <td title="${sanitizeHTML(item.nosid)}">${sanitizeHTML(item.nosid)}</td>
+              <td title="${sanitizeHTML(item.locationA)}">${sanitizeHTML(item.locationA)}</td>
+              <td title="${sanitizeHTML(item.locationB)}">${sanitizeHTML(item.locationB)}</td>
+              <td>${sanitizeHTML(item.ekAraligi)}</td>
+              <td>${sanitizeHTML(item.guzergahUzunlugu)}</td>
+              <td title="${sanitizeHTML(item.projeGuzergah)}">${sanitizeHTML(item.projeGuzergah)}</td>
+              <td title="${sanitizeHTML(item.ilkAciklama)}">${sanitizeHTML(item.ilkAciklama)}</td>
+              <td>${getRiskBadge(item.arizaRiski)}</td>
+              <td>${statuSelect(item)}</td>
+              <td>${sanitizeHTML(item.olusturan)}</td>
+              <td>${tarihGoster(item.olusturulmaTarihi)}</td>
+              <td>${tarihGoster(item.sonDegistirilmeTarihi)}</td>
+              <td>${sanitizeHTML(item.sonDegistiren)}</td>
+              <td style="text-align:center;">
+                <button class="islem-btn" type="button" title="Seçenekler" onclick="islemMenuAc(event, ${item.id})">⋮</button>
+              </td>
+            </tr>
+          `;
+          tbody.innerHTML += row;
+        });
+      }
+      renderRegionDashboard(filtered);
+    }
+
+    /**
+     * Sunucu tarihleri UTC (ISO-8601) döndürür; kullanıcı saha saatini bekler.
+     * Dönüşüm tarayıcıda yapılır — sunucunun saat dilimi ne olursa olsun ekran doğru kalır.
+     */
+    function tarihGoster(isoTarih) {
+      if (!isoTarih) return '';
+      const d = new Date(isoTarih);
+      if (isNaN(d)) return sanitizeHTML(isoTarih);
+      return sanitizeHTML(d.toLocaleString('tr-TR', {
+        timeZone: 'Europe/Istanbul',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit',
+      }));
+    }
+
+    function renderRegionDashboard(dataList) {
+      const container = document.getElementById('regionDashboardContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      let groups = {};
+      dataList.forEach(item => {
+        const saha = item.sahaSehir || "Diğer";
+        if (!groups[saha]) groups[saha] = [];
+        groups[saha].push(item);
+      });
+
+      Object.keys(groups).forEach(saha => {
+        const items = groups[saha];
+        const card = document.createElement('div');
+        card.className = 'region-card';
+        card.innerHTML = `
+          <div class="region-card-title">
+            <span>📍 ${sanitizeHTML(saha)}</span>
+            <span class="region-card-count">${items.length} Talep</span>
+          </div>
+          <div class="region-card-notes">
+            Son İşlem: ${tarihGoster(items[0].sonDegistirilmeTarihi)}<br>
+            Son Statü: <b>${sanitizeHTML(items[0].statu)}</b>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    /**
+     * Kayda YÜKLENMİŞ güzergah dosyasını indirir.
+     *
+     * Önceden bu menü, kaydın iki GPS ucundan istemcide bir KML/KMZ ÜRETİYORDU. Üretilen dosya
+     * gerçek güzergâhı değil iki nokta arasındaki düz çizgiyi gösteriyordu; üstelik o koordinatlar
+     * sahada çoğunlukla hiç toplanamıyordu. Artık kullanıcının yüklediği dosya olduğu gibi geri
+     * verilir — istemcide üretim (ve JSZip bağımlılığı) tamamen kalktı.
+     */
+    function downloadGuzergah(id) {
+      const item = talepler.find(r => r.id === Number(id));
+      if (!item) return;
+
+      if (!item.guzergahUrl) {
+        alert("Bu talepte güzergah dosyası yok. Düzenle ekranından .kml/.kmz yükleyebilirsiniz.");
+        return;
+      }
+
+      // Dosya sunucudan gelir; adı ve içerik türü Content-Disposition ile birlikte sunulur.
+      window.location.href = item.guzergahUrl;
+    }
+
+    function triggerDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    async function deleteRecord(id) {
+      if (!confirm("#" + id + " numaralı talebi silmek istediğinize emin misiniz?")) return;
+      try {
+        await api(`/api/kablo/${id}`, { method: 'DELETE' });
+        await talepleriYukle();
+      } catch (hata) {
+        hataGoster(hata);
+      }
+    }
+
+    function editRecord(id) {
+      const record = talepler.find(r => r.id === Number(id));
+      if (!record) return;
+
+      document.getElementById('formHeaderTitle').innerText = "✏️ Talep Düzenle - #" + record.id;
+      document.getElementById('editRecordId').value = record.id;
+      document.getElementById('inputNosid').value = record.nosid || "";
+      document.getElementById('inputProje').value = record.projeGuzergah || "";
+      document.getElementById('inputLocA').value = record.locationA || "";
+      document.getElementById('inputLocB').value = record.locationB || "";
+      document.getElementById('inputSaha').value = record.sahaSehir || "";
+      document.getElementById('inputLocB_ek').value = record.ekAraligi || "";
+      document.getElementById('inputUzunluk').value = record.guzergahUzunlugu != null ? record.guzergahUzunlugu : "";
+      document.getElementById('inputRisk').value = record.arizaRiski || "";
+      document.getElementById('inputDesc').value = record.ilkAciklama || "";
+      document.getElementById('inputStatu').value = record.statu || "Onay Bekliyor";
+      document.getElementById('inputDesc2').value = record.sonAciklama || "";
+
+      // Güzergah dosyası: kayıtta duran dosyanın ADI gösterilir (dosyanın kendisi indirilerek
+      // alınır). Fotoğraf gibi bu alan da düzenlemede kilitlenmez — sahadan dönen kullanıcı
+      // unuttuğu dosyayı sonradan ekleyebilmeli.
+      guzergahSifirla();
+      if (record.guzergahUrl) guzergahDurumGoster(record.guzergahDosyaAdi || "Yüklü dosya");
+
+      // Geçmiş sunucudan yapılandırılmış olarak geliyor (eski→yeni statü, kim, ne zaman);
+      // önceden düz metin satırlarıydı ve makine tarafından okunamıyordu.
+      const historyBox = document.getElementById('historyBox');
+      historyBox.innerHTML = '';
+      if (record.gecmis && record.gecmis.length > 0) {
+        record.gecmis.forEach(log => {
+          const not = log.aciklama ? ` — ${sanitizeHTML(log.aciklama)}` : '';
+          historyBox.innerHTML +=
+            `<div class="history-item">• ${tarihGoster(log.tarih)} - ${sanitizeHTML(log.degistiren)}: ` +
+            `${sanitizeHTML(log.eskiStatu)} → <b>${sanitizeHTML(log.yeniStatu)}</b>${not}</div>`;
+        });
+      } else {
+        historyBox.innerHTML = '<div class="history-item">Henüz geçmiş kaydı yok.</div>';
+      }
+
+      document.getElementById('editFieldsSection').style.display = "block";
+      // Kayıt gönderildikten sonra kimlik alanları dondurulur: güncelleme ucu yalnızca statü ve
+      // düzenleme notunu yazar. Alanları düzenlenebilir bırakmak, kullanıcının yaptığı
+      // değişikliğin sessizce kaybolması demekti — hiçbir hata çıkmadan.
+      kimlikAlanlariniKilitle(true);
+
+      // Fotoğraf artık kaydın içinde base64 olarak gelmiyor; sunucudaki uçtan gösteriliyor.
+      const prevContainer = document.getElementById('photoPreviewContainer');
+      const prevImg = document.getElementById('photoPreviewImg');
+      uploadedPhotoDosyasi = null;
+      fotografSilinecek = false;
+      if (record.fotografUrl) {
+        uploadedPhotoOnizleme = record.fotografUrl;
+        prevImg.src = record.fotografUrl;
+        prevContainer.style.display = 'inline-block';
+      } else {
+        uploadedPhotoOnizleme = "";
+        prevImg.src = "";
+        prevContainer.style.display = 'none';
+      }
+      document.getElementById('inputPhoto').value = "";
+
+      document.getElementById('formView').classList.add('active');
+      document.getElementById('listView').classList.remove('active');
+    }
+
+    /**
+     * Düzenleme modunda değiştirilemeyecek alanları kilitler.
+     * Sunucunun PUT ucu bu alanları kabul etmiyor; ekranda açık bırakmak yanıltıcı olurdu.
+     */
+    function kimlikAlanlariniKilitle(kilitli) {
+      // Güzergah dosyası ve fotoğraf BİLEREK listede yok: ikisi de ayrı uçlarla, kaydın kimlik
+      // alanlarına dokunmadan sonradan güncellenebiliyor.
+      const alanlar = ['inputNosid', 'inputProje', 'inputLocA', 'inputLocB', 'inputSaha',
+                       'inputLocB_ek', 'inputUzunluk', 'inputRisk', 'inputDesc'];
+      alanlar.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.disabled = kilitli;
+        el.style.backgroundColor = kilitli ? '#eef2f7' : '';
+        el.style.cursor = kilitli ? 'not-allowed' : '';
+      });
+
+      // Kapsam seçici kilitliyken "+ Ekle" de kapanır: eklenen kapsam bu kayıtta zaten
+      // seçilemeyeceği için düğmenin açık kalması yanıltıcı olurdu.
+      const kapsamBtn = document.getElementById('kapsamEkleBtn');
+      if (kapsamBtn) kapsamBtn.disabled = kilitli;
+
+      const not = document.getElementById('kilitNotu');
+      if (not) not.style.display = kilitli ? 'block' : 'none';
+    }
+
+    async function processFormSubmission() {
+      const editId = document.getElementById('editRecordId').value;
+
+      // Uzunluk yeni kayıtta ZORUNLU. Düzenlemede alan kilitli ve sunucunun PUT ucu onu zaten
+      // kabul etmiyor; oradaki eski değere bakıp kullanıcıyı durdurmak anlamsız olurdu.
+      const uzunlukHam = document.getElementById('inputUzunluk').value.trim();
+      const uzunluk = uzunlukHam === "" ? null : parseInt(uzunlukHam.replace(/[^0-9]/g, ''), 10);
+      if (!editId && (uzunluk === null || isNaN(uzunluk) || uzunluk < 1)) {
+        alert("Güzergah uzunluğu zorunludur ve metre cinsinden pozitif bir sayı olmalıdır.");
+        return;
+      }
+
+      try {
+        let kayit;
+
+        if (editId) {
+          // Güncelleme yalnızca statü ve düzenleme notunu değiştirir — sunucu bunun için
+          // ayrıca bir geçmiş satırı yazar. Kaydın kimlik alanları (NOSID, konum, güzergâh)
+          // gönderim sonrası dondurulmuştur.
+          // surum: düzenlemeye başladığımız kaydın xmin'i; arada başkası değiştirdiyse sunucu 409 döner.
+          const mevcutKayit = talepler.find(r => r.id === Number(editId));
+          kayit = await api(`/api/kablo/${editId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              statu: document.getElementById('inputStatu').value,
+              sonAciklama: document.getElementById('inputDesc2').value || null,
+              surum: mevcutKayit ? mevcutKayit.surum : 0,
+            }),
+          });
+        } else {
+          kayit = await api('/api/kablo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nosid: document.getElementById('inputNosid').value.trim(),
+              sahaSehir: document.getElementById('inputSaha').value || null,
+              projeGuzergah: document.getElementById('inputProje').value || null,
+              locationA: document.getElementById('inputLocA').value || null,
+              locationB: document.getElementById('inputLocB').value || null,
+              ekAraligi: document.getElementById('inputLocB_ek').value || null,
+              guzergahUzunlugu: uzunluk,
+              arizaRiski: document.getElementById('inputRisk').value,
+              ilkAciklama: document.getElementById('inputDesc').value || null,
+            }),
+          });
+        }
+
+        // Fotoğraf ayrı bir istekle gider (multipart). Kayıt yazıldıktan SONRA gönderilir:
+        // önce gönderilseydi bağlanacağı kayıt henüz var olmazdı.
+        if (uploadedPhotoDosyasi) {
+          const form = new FormData();
+          form.append('dosya', uploadedPhotoDosyasi);
+          await api(`/api/kablo/${kayit.id}/fotograf`, { method: 'POST', body: form });
+        } else if (fotografSilinecek && editId) {
+          await api(`/api/kablo/${editId}/fotograf`, { method: 'DELETE' });
+        }
+
+        // Güzergah dosyası da aynı desende: kayıt yazıldıktan SONRA, ayrı bir multipart istekle.
+        // Zorunlu olmadığı için dosya seçilmediğinde hiçbir istek atılmaz.
+        if (guzergahDosyasi) {
+          const guzergahForm = new FormData();
+          guzergahForm.append('dosya', guzergahDosyasi);
+          await api(`/api/kablo/${kayit.id}/guzergah`, { method: 'POST', body: guzergahForm });
+        } else if (guzergahSilinecek && editId) {
+          await api(`/api/kablo/${editId}/guzergah`, { method: 'DELETE' });
+        }
+
+        uploadedPhotoDosyasi = null;
+        uploadedPhotoOnizleme = "";
+        fotografSilinecek = false;
+        document.getElementById('photoPreviewContainer').style.display = 'none';
+        document.getElementById('inputPhoto').value = "";
+        guzergahSifirla();
+        document.getElementById('editRecordId').value = "";
+
+        document.getElementById('formView').classList.remove('active');
+        document.getElementById('listView').classList.add('active');
+
+        // Liste sunucudan yeniden çekilir; yerelde tutulan kopyayı elle güncellemek, iki
+        // kaynağın zamanla ayrışmasına açık kapı bırakırdı.
+        await talepleriYukle();
+      } catch (hata) {
+        // 409: kayıt biz düzenlerken başkası tarafından değiştirildi. Kullanıcıyı uyar ve listeyi
+        // tazele ki en güncel sürümü görüp yeniden denesin.
+        if (hata && hata.durum === 409) {
+          alert((hata && hata.message) ||
+            "Bu kayıt siz düzenlerken başka bir kullanıcı tarafından değiştirildi. Liste yenilendi.");
+          document.getElementById('editRecordId').value = "";
+          document.getElementById('formView').classList.remove('active');
+          document.getElementById('listView').classList.add('active');
+          await talepleriYukle();
+          return;
+        }
+        hataGoster(hata);
+      }
+    }
+
+    /**
+     * Excel'i SUNUCU üretir.
+     *
+     * Önceden dosya tarayıcıda SheetJS ile üretiliyordu ve sunucudaki /excel-indir ucu hiç
+     * çağrılmıyordu. İki üretici olması, sütun düzeninin ve biçimlerin sessizce ayrışması
+     * demekti; ayrıca istemci yalnızca ekrandaki veriyi yazabiliyordu.
+     */
+    async function handleExportExcel() {
+      try {
+        const yanit = await fetch('/api/kablo/excel-indir', { credentials: 'same-origin' });
+        if (!yanit.ok) {
+          if (yanit.status === 401) { hataGoster({ durum: 401 }); return; }
+          alert("Excel indirilemedi (HTTP " + yanit.status + ")");
+          return;
+        }
+        const blob = await yanit.blob();
+        triggerDownload(blob, "Saha_Ve_Kablo_Talep_Listesi.xlsx");
+      } catch (hata) {
+        alert("Excel indirilemedi: " + hata.message);
+      }
+    }
+
+    // --- Kablo kataloğu yükleme (yönetici) ---
+    function openKatalogModal() {
+      document.getElementById('katalogDosya').value = "";
+      document.getElementById('katalogSonuc').innerText = "";
+      // Önceki yüklemenin başarı ekranı açık kalmışsa forma dön; aksi hâlde pencere onay
+      // işaretiyle açılır ve kullanıcı dosya seçemez.
+      katalogFormaDon();
+      document.getElementById('katalogModal').style.display = 'flex';
+    }
+    function closeKatalogModal() {
+      document.getElementById('katalogModal').style.display = 'none';
+      katalogFormaDon();
+    }
+    /** Başarı ekranını kapatıp pencereyi yükleme formuna geri döndürür. */
+    function katalogFormaDon() {
+      if (katalogKapanmaSayaci) { clearInterval(katalogKapanmaSayaci); katalogKapanmaSayaci = null; }
+      document.getElementById('katalogBasari').classList.remove('gorunur');
+      document.getElementById('katalogDugmeler').style.display = 'flex';
+      document.getElementById('katalogDosya').style.display = '';
+      document.getElementById('katalogSonuc').style.display = '';
+    }
+
+    let katalogKapanmaSayaci = null;
+
+    async function uploadKatalog() {
+      const inp = document.getElementById('katalogDosya');
+      const sonucEl = document.getElementById('katalogSonuc');
+      if (!inp.files || inp.files.length === 0) { alert("Bir .xlsx dosyası seçin."); return; }
+
+      const btn = document.getElementById('katalogYukleOnayBtn');
+      btn.disabled = true;
+      sonucEl.style.color = '#475569';
+      sonucEl.innerText = "Yükleniyor…";
+      try {
+        const form = new FormData();
+        form.append('dosya', inp.files[0]);
+        const sonuc = await api('/api/kablo/katalog-yukle', { method: 'POST', body: form });
+
+        // Başarıda pencere metin satırıyla açık kalmıyor: form gizlenip animasyonlu onay ekranı
+        // geliyor ve pencere kendiliğinden kapanıyor. Önceki hâlde kullanıcı işin bittiğini fark
+        // etmiyor, "Kapat"a basması gerektiğini anlamıyordu.
+        sonucEl.innerText = "";
+        sonucEl.style.display = 'none';
+        inp.style.display = 'none';
+        document.getElementById('katalogDugmeler').style.display = 'none';
+
+        document.getElementById('katalogBasariOzet').innerText =
+          `${sonuc.eklenen} yeni kablo eklendi.\n` +
+          `Dosyada ${sonuc.toplam} kayıt vardı; ${sonuc.atlanan} tanesi katalogda zaten mevcuttu.`;
+
+        const basari = document.getElementById('katalogBasari');
+        // Sınıfı kaldırıp yeniden eklemek animasyonu baştan başlatır (art arda yüklemelerde gerekli).
+        basari.classList.remove('gorunur');
+        void basari.offsetWidth;
+        basari.classList.add('gorunur');
+
+        let kalan = 3;
+        const sayacEl = document.getElementById('katalogBasariSayac');
+        sayacEl.innerText = `Bu pencere ${kalan} saniye içinde kapanacak.`;
+        katalogKapanmaSayaci = setInterval(() => {
+          kalan--;
+          if (kalan <= 0) {
+            clearInterval(katalogKapanmaSayaci);
+            katalogKapanmaSayaci = null;
+            closeKatalogModal();
+            katalogFormaDon();
+            inp.value = "";
+            return;
+          }
+          sayacEl.innerText = `Bu pencere ${kalan} saniye içinde kapanacak.`;
+        }, 1000);
+      } catch (hata) {
+        sonucEl.style.color = '#dc2626';
+        sonucEl.innerText = (hata && hata.message) || "Yükleme başarısız.";
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TTI Saha Hakediş</string>
+
+    <!-- Ortak eylemler -->
+    <string name="action_back">Geri</string>
+    <string name="action_cancel">Vazgeç</string>
+    <string name="action_change">Değiştir</string>
+    <string name="action_retry">Tekrar dene</string>
+    <string name="action_refresh">Yenile</string>
+    <string name="action_download">İndir</string>
+    <string name="action_logout">Çıkış</string>
+    <string name="loading">Yükleniyor…</string>
+    <string name="error_generic">İşlem tamamlanamadı.</string>
+
+    <!-- Giriş -->
+    <string name="login_logo_description">Türk Telekom International</string>
+    <string name="login_title">Saha Hakediş</string>
+    <string name="login_subtitle">Devam etmek için kurumsal VPN bağlantınızın açık olması gerekir.</string>
+    <string name="login_user_name">Kullanıcı adı</string>
+    <string name="login_password">Parola</string>
+    <string name="login_submit">Giriş Yap</string>
+    <!-- Adres artık yalnızca Hesap sekmesinde **okunuyor**; giriş ekranındaki alan ve
+         göster/gizle düğmesi 19 Ağustos 2026'da kalktı (adres derleme zamanında sabit). -->
+    <string name="login_server_address">Sunucu adresi</string>
+
+    <!-- İş listesi -->
+    <string name="work_orders_title">Projeler</string>
+    <string name="work_orders_empty">Bu süzgeçle gösterilecek proje yok.</string>
+    <string name="work_orders_filter_all">Tümü</string>
+    <string name="work_order_new">Yeni Proje</string>
+    <string name="work_order_cancelled">İptal edildi: %1$s</string>
+
+    <!-- İş tanımı -->
+    <string name="work_order_title">Proje</string>
+    <string name="work_order_section_definition">Tanım</string>
+    <string name="work_order_section_cable">Kable</string>
+    <!-- Değeri olmayan alanın yerine basılır; kablosuz "Yeni Tesis" projesinde kablo ve uçlar boş olabilir. -->
+    <string name="bos_deger">—</string>
+    <string name="work_order_section_identifiers">Proje Tanımlayıcıları</string>
+    <string name="work_order_save">Projeyi Oluştur</string>
+    <string name="work_order_saving">Kaydediliyor…</string>
+    <string name="work_order_missing">Tüm alanlar zorunludur; kable listeden seçilmelidir.</string>
+    <!-- Yeni Tesis kapsamında (Kablo ID sistemce atanır) gösterilir; uçlar zorunlu. -->
+    <string name="work_order_missing_no_cable">Kapsam, Route, Ek Aralığı ve Uç A/Uç B (ülke, şehir, adres) zorunludur.</string>
+    <!-- Yeni Tesis'te Kablo ID sistem tarafından üretilir (mtc…); kullanıcı yazmaz, envantere eklenmez. -->
+    <string name="work_order_cable_auto_note">Bu kapsamda iş belirli bir envanter kablosunun kapsamında değildir. Kablo ID sistem tarafından otomatik atanır (mtc…); envantere eklenmez.</string>
+    <string name="work_order_cable_auto_value">Sistem atayacak (mtc…)</string>
+    <!-- %1$s: alan etiketi (Ülke/Şehir/Adres). Yeni Tesis'te zorunlu uç segmentinin boş uyarısı. -->
+    <string name="field_required">%1$s zorunludur.</string>
+    <!-- Konum yolu segmentleri; web'deki SEGMENTLER dizisiyle aynı sıra ve anlam. -->
+    <string name="segment_country">Ülke</string>
+    <string name="segment_city">Şehir</string>
+    <string name="segment_address">Adres</string>
+    <string name="segment_building">Bina</string>
+    <string name="segment_floor">Kat</string>
+    <string name="segment_room">Oda</string>
+    <string name="segment_cage">Kafes</string>
+    <string name="segment_footprint">Ayak</string>
+    <string name="segment_rackspace">Raf</string>
+    <string name="work_order_ends_manual_note">Uç A ve Uç B için ülke, şehir ve adres zorunludur; diğer segmentler (bina, kat …) opsiyoneldir. Girilen konum, envanterden gelen adreslerle aynı biçimde saklanır.</string>
+    <string name="work_order_created_title">Bu proje açıldı</string>
+    <string name="work_order_created">%1$s projesi açıldı. Numara sunucu tarafından üretildi.</string>
+    <string name="work_order_created_next">Sıradaki adım: proje listesinde bu projenin Ön Fizibilite satırındaki "Güncelle" düğmesine basıp sözleşmeyi seçin.</string>
+    <string name="work_order_open">Proje Listesine Git</string>
+
+    <string name="field_region">Bölge</string>
+    <string name="field_scope">Kapsam</string>
+    <string name="field_contract">Referans sözleşme</string>
+    <string name="field_sp_no">SP No</string>
+    <string name="field_route">Route</string>
+    <string name="field_ek_araligi">Ek Aralığı</string>
+    <!-- CLAUDE.md §9 ekran tarifiyle ve web etiketiyle aynı yazım; ~~KableID~~ iki istemcide
+         farklı okunuyordu. Envanterdeki alan adı hâlâ `kable.nosid`. -->
+    <string name="field_kable_id">Kablo ID</string>
+    <!-- Arama kutusunun yer tutucusu: kullanıcı adrese göre de arayabiliyor. -->
+    <string name="field_kable_search">KableID veya adres</string>
+    <string name="dropdown_placeholder">Seçiniz</string>
+    <string name="cable_end_a">Uç A: %1$s</string>
+    <string name="cable_end_b">Uç B: %1$s</string>
+    <string name="cable_end_a_label">Uç A</string>
+    <string name="cable_end_b_label">Uç B</string>
+
+    <!-- Belge -->
+    <string name="document_title">Belge</string>
+    <string name="document_type_fizibilite">Ön Fizibilite</string>
+    <string name="document_type_kesif">Keşif</string>
+    <string name="document_type_hakedis">Hakediş</string>
+    <string name="document_read_only">%1$s — bu belge artık değiştirilemez.</string>
+    <string name="document_cancelled">İptal edildi: %1$s</string>
+    <string name="document_reference_prices">Birim fiyatlar sözleşmenin referans fiyatlarıdır ve salt okunurdur; yalnızca miktar girilir.</string>
+    <string name="document_invalid_quantities">Miktar yalnızca rakam ve tek ondalık ayırıcı içerebilir (örn. 12,5). Kaydedilmedi. Düzeltilecek poz: %1$s</string>
+    <string name="document_saving">Kaydediliyor…</string>
+    <string name="document_saved">Kaydedildi</string>
+    <string name="document_unsaved">Kaydedilmemiş değişiklik var</string>
+    <string name="document_submit">Gönder</string>
+    <string name="document_submit_for_approval">Onaya Gönder</string>
+    <string name="document_submitting">Gönderiliyor…</string>
+    <string name="document_submitted_title">Belge gönderildi</string>
+    <string name="document_submitted_go_to_work_order">Projeye Dön</string>
+
+    <string name="blocker_no_quantity">En az bir poz için miktar girin.</string>
+    <string name="blocker_invalid_quantity">Geçersiz miktarları düzeltin.</string>
+    <string name="blocker_missing_ek1">EK1 güzergâh dosyasını (.kmz/.kml) yükleyin.</string>
+
+    <!-- Poz tablosu -->
+    <string name="poz_table_title">Poz Tablosu</string>
+    <string name="column_poz_no">Poz No</string>
+    <string name="column_item_name">İş Kalemi</string>
+    <string name="column_unit">Birim</string>
+    <string name="column_unit_price">Br Fiyat</string>
+    <string name="column_quantity">Miktar</string>
+    <string name="column_amount">Tutar</string>
+    <string name="poz_table_search_placeholder">Poz no veya iş kalemi ara</string>
+    <string name="poz_table_only_filled">Sadece dolu satırlar</string>
+    <string name="poz_table_not_priced">Bu sözleşmede fiyatlandırılmamış</string>
+    <string name="poz_table_no_match">Aramaya uyan satır yok.</string>
+    <string name="poz_table_total">Toplam</string>
+    <string name="error_quantity_invalid">Geçersiz sayı</string>
+    <string name="error_quantity_negative">Negatif olamaz</string>
+
+    <!-- Ekler (EK1 / EK2) -->
+    <string name="attachments_title">Ekler</string>
+    <string name="attachment_route_label">EK1 — Güzergâh dosyası (.kmz / .kml) · zorunlu</string>
+    <string name="attachment_route_pick">Dosya seç</string>
+    <string name="attachment_remove">Kaldır</string>
+    <string name="attachment_images_label">EK2 — Saha görselleri (opsiyonel)</string>
+    <string name="attachment_images_pick">Galeriden ekle</string>
+    <string name="attachment_images_camera">Fotoğraf çek</string>
+    <string name="attachment_size_kb">%1$d KB</string>
+    <string name="attachment_error_invalid_extension">Sadece .kmz veya .kml uzantılı dosya seçilebilir.</string>
+
+    <!-- EK3 — TTI Kullanılan Malzemeler (yalnızca hakediş, Faz Y).
+         Tırnaklar tipografik (“ ”): Android kaynaklarında düz " kaçış ister ve web de böyle basıyor. -->
+    <string name="materials_title">TTI Kullanılan Malzemeler</string>
+    <string name="materials_hint">Sahada kullanılan malzemeler. Hiçbiri zorunlu değil — bildiğiniz alanları doldurmanız yeterli, boş bırakılan satırlar kaydedilmez.</string>
+    <string name="materials_row_number">%1$d. malzeme</string>
+    <string name="materials_column_name">Malzeme Adı</string>
+    <string name="materials_column_quantity">Malzeme Miktarı</string>
+    <string name="materials_column_serial">Seri No</string>
+    <string name="materials_quantity_placeholder">12,5</string>
+    <string name="materials_add">Yeni malzeme ekle</string>
+    <string name="materials_remove">Kaldır</string>
+    <string name="materials_save">Malzemeleri Kaydet</string>
+    <string name="materials_result_saved">Malzeme listesi kaydedildi.</string>
+    <string name="materials_empty">Malzeme girilmemiş.</string>
+    <string name="materials_unsaved_warning">Kaydedilmemiş değişiklikleriniz var. “Malzemeleri Kaydet” demeden belgeyi gönderirseniz bu satırlar kaydedilmez.</string>
+    <string name="materials_unsaved_note">Önce “Malzemeleri Kaydet” deyin.</string>
+    <string name="materials_unsaved_submit_error">Malzeme listesinde kaydedilmemiş değişiklik var. Önce “TTI Kullanılan Malzemeler” bölümünde “Malzemeleri Kaydet” deyin, sonra gönderin.</string>
+
+    <!-- Çıktı -->
+    <string name="output_title">Çıktı</string>
+    <string name="output_pdf">PDF · %1$s</string>
+    <string name="output_excel">Excel · %1$s</string>
+    <string name="output_downloading">Belge sunucuda üretiliyor…</string>
+    <string name="output_share">Paylaş</string>
+    <string name="output_saved">Kaydedildi: %1$s</string>
+    <string name="output_open">Aç</string>
+    <string name="output_page_count">%1$d sayfa</string>
+    <string name="output_preview_description">Belgenin ilk sayfası</string>
+    <string name="variant_fiyatli">Fiyatlı</string>
+    <string name="variant_teklif">Teklif (fiyatsız)</string>
+
+    <!-- Hata ekranı -->
+    <string name="crash_title">Beklenmeyen bir hata oluştu</string>
+    <string name="crash_message">Uygulama kapatıldı. Tekrar açıp kaldığınız yerden devam edebilirsiniz; girdiğiniz veriler sunucuda saklanıyor.</string>
+    <string name="crash_close">Kapat</string>
+    <!-- Faz S: satır bazlı iş ekranı, sözleşme seçimi, miktar Excel'i -->
+    <string name="work_orders_filter_processing">İşleniyor</string>
+    <string name="stage_summary">Güncelleyen: %1$s · Toplam: %2$s</string>
+    <string name="action_update">Güncelle</string>
+    <string name="action_observe">Gözlemle</string>
+    <string name="action_open">Aç</string>
+    <string name="action_give_up">Vazgeç</string>
+    <string name="placeholder_select">Seçiniz…</string>
+    <!-- Yönetici eylemlerinin metinleri (İşleme Al / Projeyi İptal Et) kaldırıldı: onay, iptal ve
+         durum müdahalesi yalnızca web arayüzündedir (CLAUDE.md §9). -->
+    <string name="contract_select_title">%1$s — Sözleşme Seç</string>
+    <string name="contract_select_hint">Belgenin birim fiyatları bu sözleşmenin yayındaki listesinden gelir ve belgeye dondurulur.</string>
+    <string name="contract_section_title">Sözleşme</string>
+    <string name="contract_change">Sözleşmeyi Değiştir</string>
+    <string name="contract_change_warning">Sözleşme değiştirilirse girilmiş tüm miktarlar silinir. Poz numaraları sözleşmeye özeldir; taşınsalardı yanlış kalemlere yapışırlardı.</string>
+    <string name="quantity_template_download">Miktar Şablonu İndir</string>
+    <string name="quantity_template_upload">Doldurulmuş Şablonu Yükle</string>
+    <string name="quantity_template_hint">Şablon mevcut miktarlarla dolu iner. Yükleme tam değiştirmedir: dosyada boş bırakılan kalem belgeden silinir.</string>
+    <string name="work_order_generated_fields_hint">SP No sunucu tarafından üretilir; sözleşme her belge açılırken ayrıca seçilir.</string>
+    <string name="cable_query_too_short">Aramak için en az %1$d karakter yazın (ör. mtc296).</string>
+    <string name="cable_searching">Aranıyor…</string>
+    <string name="cable_none">Eşleşen kablo yok.</string>
+    <string name="cable_truncated">İlk %1$d sonuç gösteriliyor; aradığınız kablo listede yoksa numaranın devamını yazın.</string>
+    <string name="work_orders_export">Projeleri Excel olarak indir</string>
+    <string name="work_orders_export_busy">Hazırlanıyor…</string>
+
+    <!-- Düzeltme Turu 4: alt sekme çubuğu -->
+    <string name="tab_projects">Projeler</string>
+    <string name="tab_documents">Belgeler</string>
+    <string name="tab_account">Hesap</string>
+
+    <!-- Düzeltme Turu 4: Hesap -->
+    <string name="account_title">Hesap</string>
+    <string name="account_user_section">Kullanıcı</string>
+    <string name="account_name">Ad Soyad</string>
+    <string name="account_user_name">Kullanıcı adı</string>
+    <string name="account_role">Rol</string>
+    <string name="account_role_manager">Yönetici</string>
+    <string name="account_role_officer">Bölge sorumlusu</string>
+    <string name="account_region">Bölge</string>
+    <string name="account_region_all">Tüm bölgeler</string>
+    <string name="account_server_section">Sunucu</string>
+    <string name="account_logout_title">Çıkış yapılsın mı?</string>
+    <string name="account_logout_body">Oturum kapanacak ve parola yeniden istenecek. Kaydedilmemiş bir belge varsa önce onu gönderin.</string>
+    <string name="account_logout_confirm">Evet, Çıkış Yap</string>
+
+    <!-- Düzeltme Turu 4: belge arşivi -->
+    <string name="documents_title">Belgeler</string>
+    <string name="documents_empty">Bu süzgeçle eşleşen belge yok.</string>
+    <string name="documents_filter_type">Belge türü</string>
+    <string name="documents_filter_status">Durum</string>
+    <string name="documents_filter_all">Tümü</string>
+    <!-- `status_draft` (Taslak) kalktı: `TASLAK` yeknesek durum makinesinde (V17) yok. -->
+    <string name="status_pending">Onay Bekliyor</string>
+    <string name="status_processing">İşleniyor</string>
+    <string name="status_completed">Tamamlandı</string>
+    <string name="status_cancelled">İptal</string>
+    <string name="field_responsible">Sorumlu</string>
+    <string name="field_total">Toplam</string>
+    <string name="action_observe_document">Belgeyi Aç</string>
+
+    <!-- Düzeltme Turu 4: aşama rayı -->
+    <string name="stage_rail_label">Proje aşamaları</string>
+    <string name="stage_waiting">Henüz açılmadı</string>
+    <string name="stage_next">Henüz açılmadı — sırada bu adım var</string>
+    <string name="action_start">Başlat</string>
+    <string name="work_order_expand">%1$s ayrıntılarını göster</string>
+    <string name="work_order_collapse">%1$s ayrıntılarını gizle</string>
+</resources>

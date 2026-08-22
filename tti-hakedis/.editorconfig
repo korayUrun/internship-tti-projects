@@ -1,0 +1,27 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.{kt,kts}]
+# ktlint_official stili Compose kodunu (`modifier =` sonrası zorunlu satır başı) okunaksızlaştırıyor.
+ktlint_code_style = intellij_idea
+ktlint_standard_function-naming = disabled
+ktlint_standard_property-naming = disabled
+ktlint_function_signature_body_expression_wrapping = default
+max_line_length = 140
+
+[*.kts]
+# Gradle DSL'inde `libs.versions.x.get().toInt()` gibi kısa zincirler idiomatic; satır bölmeye gerek yok.
+ktlint_standard_chain-method-continuation = disabled
+
+[*.{xml,json,toml,yml,yaml}]
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false

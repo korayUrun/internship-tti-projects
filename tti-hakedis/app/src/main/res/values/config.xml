@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Yapılandırma değerleri — kullanıcıya gösterilen metin değil, o yüzden `strings.xml`'de değil
+    (`translatable="false"`).
+-->
+<resources>
+    <!--
+        Sunucu adresi — **tek kaynak, derleme zamanında sabit** (kullanıcı isteği, 19 Ağustos 2026).
+        Uygulamada adres girme alanı yok; `Settings.serverAddress()` yalnızca burayı okur.
+
+        ⚠️ ~~Karar J1: adres giriş ekranından ayarlanır, IP değişince APK yeniden dağıtılmasın~~ —
+        **geri alındı.** Bedeli kabul edildi: alan adı, DNS ya da sunucu değişirse tek çıkış yolu
+        yeni APK derleyip tabletlere dağıtmaktır; sahada geçici çözüm yoktur. Karşılığında sahadaki
+        kullanıcı yanlış adres yazamıyor ve yeni tablette kurulum "kullanıcı adı + parola"ya iniyor.
+
+        ⚠️ `https://` şeması ve **port yazılmaması** bilinçli: sunucuda uygulama `127.0.0.1:8081`'e
+        bağlı ve 8081 güvenlik duvarında kapalı (`docker-compose.yml`); dışarıya açık tek kapı ters
+        vekilin 443'ü. Şema zorunlu — `HakedisApi.request` şemasız adreste "Sunucu adresi geçersiz"
+        hatası veriyor. Sondaki `/` yazılmaz, yollar buna eklenerek kuruluyor.
+
+        Alan adını **kurumsal DNS** çözüyor (IT'nin eklediği A kaydı), Docker değil: tabletin
+        bağlandığı ağ (VPN / kurumsal Wi-Fi) bu adı göremiyorsa uygulama bağlanamaz.
+
+        Geliştirme sunucusuna bağlanmak için bu satır geçici olarak değiştirilip yeniden derlenir;
+        ~~debug yapısına ayrı varsayılan~~ konmuyor — emülatörün de üretim sunucusuna gitmesi
+        istendi ve iki farklı adres, "hangi APK nereye bağlanıyor" sorusunu geri getirirdi.
+    -->
+    <string name="server_address" translatable="false">https://hakedis.turktelekomint.com</string>
+</resources>

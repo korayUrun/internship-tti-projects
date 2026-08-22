@@ -1,0 +1,33 @@
+# Build context'i küçük tutar VE imaja sızmaması gereken şeyleri dışarıda bırakır.
+# Bu dosya CONTEXT KÖKÜNDE olmak zorunda; iki imajı (backend + panel) birden yönetiyor.
+
+.git
+.gitignore
+**/*.md
+
+# ⚠️ `.env` DEĞİL `**/.env`: ilki yalnızca context kökünü eşler ve backend/.env'in (canlı bir
+# JWT_SECRET_KEY içeriyor) imaja girmesine izin verirdi. İmaja sızmış bir .env, compose'un
+# `environment:` bloğunu sessizce ezer.
+**/.env
+**/.env.*
+
+# Uygulama API anahtarları — imaja girmez.
+api_keys.txt
+
+# Sanal ortam / bağımlılıklar — imaj içinde yeniden kurulur (.venv 227 MB, node_modules 95 MB)
+**/.venv
+**/venv
+**/node_modules
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+
+# Derleme çıktısı — build aşaması yeniden üretir
+admin-panel/dist
+
+# KULLANICI VERİSİ — konteynerde /yukleme bind mount'undan gelir, imaja GİRMEZ (76 MB)
+backend/backups
+deploy/yukleme
+
+**/.DS_Store
