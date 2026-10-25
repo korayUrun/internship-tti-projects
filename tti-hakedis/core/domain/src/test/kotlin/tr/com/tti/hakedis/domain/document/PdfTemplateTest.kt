@@ -21,7 +21,7 @@ class PdfTemplateTest {
             header = DocumentHeader(
                 region = Region.IST_AVR,
                 scope = Scope.YENI_TESIS,
-                contractName = "2026 Güvenay Rota-1",
+                contractName = "2026 Sample Rota-1",
                 spNo = "SP-12345",
                 route = "Rota-1",
                 ekAraligi = "EK-4 / EK-5",

@@ -32,7 +32,7 @@ class SozlesmeCiktisiTest {
     @Test
     fun `uretilen dosya sozlesme okuyucusundan gecer`() {
         val icerik = SozlesmeCiktisi.uret(
-            kod = "2026-guvenay-rota-1",
+            kod = "2026-sample-rota-1",
             baslik = "Rota-1: Edirne-Kırklareli",
             pozlar = listOf(
                 poz("1", "HAVAİ GÜZERGAH İMALATLARI", grup = true, fiyatli = false),
@@ -54,14 +54,14 @@ class SozlesmeCiktisiTest {
         // Yeni kod sayfa adından türetiliyor. Sabit bir "Sozlesme" adı kullanılsaydı her indirilen
         // dosya geri yüklendiğinde aynı kodu üretir ve yönetici adı sıfırdan yazmak zorunda kalırdı.
         val icerik = SozlesmeCiktisi.uret(
-            kod = "2026-guvenay-rota-1",
+            kod = "2026-sample-rota-1",
             baslik = "Test",
             pozlar = listOf(poz("1.1", "Kalem", birim = "Ad.", fiyat = "1")),
         )
 
         val sayfaAdlari = XlsxOkuyucu.sayfaAdlari(icerik)
 
-        assertThat(sayfaAdlari).containsExactly("2026-guvenay-rota-1")
+        assertThat(sayfaAdlari).containsExactly("2026-sample-rota-1")
     }
 
     @Test

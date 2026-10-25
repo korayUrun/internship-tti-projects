@@ -7,7 +7,7 @@ class WorkOrderValidatorTest {
     private val doluKayit = WorkOrder(
         region = Region.IST_AVR,
         scope = Scope.ARIZA_SONRASI_ONARIM,
-        contractId = "2026-guvenay-rota-1",
+        contractId = "2026-sample-rota-1",
         spNo = "SP-12345",
         route = "Rota-1",
         ekAraligi = "EK-4 / EK-5",

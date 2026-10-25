@@ -64,7 +64,7 @@ class ExcelUreticiTest {
         bolgeAdi = "İstanbul Avrupa",
         kapsamKodu = "YENI_TESIS",
         kapsamAdi = "Yeni Tesis",
-        sozlesmeAdi = "2026 Güvenay Rota-1",
+        sozlesmeAdi = "2026 Sample Rota-1",
         sozlesmeBasligi = "Rota-1: Edirne-Kırklareli",
         spNo = "SP-12345",
         route = "Rota-1",

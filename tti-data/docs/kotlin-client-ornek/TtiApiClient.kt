@@ -57,9 +57,9 @@ object TtiApiClientFactory {
     //   grep -c 'BEGIN CERTIFICATE' certs/fullchain.pem   # ≥ 2 olmalı
     //
     // ⚠️ Wildcard sertifika TEK etiket kapsar:
-    //   data.turktelekomint.com      ✓
-    //   veri.data.turktelekomint.com ✗
-    private const val BASE_URL = "https://data.turktelekomint.com/"
+    //   data.example.invalid      ✓
+    //   veri.data.example.invalid ✗
+    private const val BASE_URL = "https://data.example.invalid/"
 
     fun create(apiKey: String): TtiDataApi {
         val client = OkHttpClient.Builder()

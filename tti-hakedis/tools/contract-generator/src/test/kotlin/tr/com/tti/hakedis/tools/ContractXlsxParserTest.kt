@@ -25,7 +25,7 @@ class ContractXlsxParserTest {
         basliklar: List<String> = listOf("ISC_POZNO", "ISC_ADI", "ISC_BIRIM", "ESK Sonrası Güncel Fiyat"),
     ): XSSFSheet {
         val kitap = XSSFWorkbook()
-        val sayfa = kitap.createSheet("2026_Güvenay_Rota-1 Br Fiyatlar")
+        val sayfa = kitap.createSheet("2026_Sample_Rota-1 Br Fiyatlar")
 
         sayfa.createRow(0).createCell(0).setCellValue(baslik)
 

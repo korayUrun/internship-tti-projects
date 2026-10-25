@@ -1,8 +1,8 @@
 # Linux Sunucuya Grafik Arayüz (GUI) Erişimi — RHEL 9
 
 Arayüzsüz (headless) kurulmuş bir Red Hat sunucusuna, Windows'un **yerleşik Uzak Masaüstü
-Bağlantısı** (`mstsc`) ile grafik masaüstü erişimi. 7 Ağustos 2026'da `TRLPVNOCBO01.tti.intra`
-(RHEL 9.8, kullanıcı `aurun`) üzerinde uygulanmış ve çalıştığı doğrulanmış adımlardır.
+Bağlantısı** (`mstsc`) ile grafik masaüstü erişimi. 7 Ağustos 2026'da `example-host.tti.intra`
+(RHEL 9.8, kullanıcı `deploy-user`) üzerinde uygulanmış ve çalıştığı doğrulanmış adımlardır.
 
 > Hangi rehber?
 > - **Bu dosya** — sunucuya grafik arayüz kurma ve uzaktan bağlanma
@@ -213,7 +213,7 @@ devreye girdiği için yeni bir SSH bağlantısı açmak gerekir:
 loginctl list-sessions        # artık bir satır görülmeli
 ```
 
-⚠️ **Kalıcılık uyarısı:** `TRLPVNOCBO01`'de bu iki dosya 5 Ağustos 2026 tarihliydi ve
+⚠️ **Kalıcılık uyarısı:** `example-host`'de bu iki dosya 5 Ağustos 2026 tarihliydi ve
 `# This file is auto-generated. User changes will be destroyed the next time authconfig is run.`
 başlığını taşıyordu — yani bir kurulum/sıkılaştırma otomasyonu yazmış. **O otomasyon tekrar
 koşarsa satır silinir ve masaüstü aynı şekilde çöker.** `authselect` bu sunucuda kullanılmıyor
@@ -253,7 +253,7 @@ systemctl is-active xrdp xrdp-sesman gdm     # üçü de active
 **1.** Bir PowerShell penceresi açın, tüneli kurun ve **pencereyi kapatmayın**:
 
 ```powershell
-ssh -L 13389:localhost:3389 aurun@TRLPVNOCBO01
+ssh -L 13389:localhost:3389 deploy-user@example-host
 ```
 
 Bu, sunucudaki 3389 portunu iş istasyonundaki 13389'a bağlar. Trafik SSH'in şifreli tünelinden
@@ -273,7 +273,7 @@ tünelinde şifreli.)
 | Alan | Değer |
 |---|---|
 | Session | `Xorg` |
-| username | Linux kullanıcı adı (`aurun`) |
+| username | Linux kullanıcı adı (`deploy-user`) |
 | password | Linux parolası |
 
 ---
@@ -353,7 +353,7 @@ Aşağıdaki İngilizce özet, yapılan değişikliklerin tamamını ve dikkat �
 içerir.
 
 ```
-Changes made on TRLPVNOCBO01 (RHEL 9.8)
+Changes made on example-host (RHEL 9.8)
 
 1. Installed the GNOME desktop - "Server with GUI" package group, from our subscribed
    Red Hat repos. Within Red Hat support scope.

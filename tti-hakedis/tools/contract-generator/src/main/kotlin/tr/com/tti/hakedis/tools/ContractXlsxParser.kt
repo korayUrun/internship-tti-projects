@@ -223,7 +223,7 @@ object ContractXlsxParser {
         else -> ""
     }
 
-    /** `2026_Güvenay_Rota-1 Br Fiyatlar` → `2026 Güvenay Rota-1` */
+    /** `2026_Sample_Rota-1 Br Fiyatlar` → `2026 Sample Rota-1` */
     private fun cleanSheetName(sheetName: String): String = sheetName.replace('_', ' ')
         .replace(Regex("(?i)br\\s+fiyatlar"), "")
         .replace(Regex("\\s+"), " ")

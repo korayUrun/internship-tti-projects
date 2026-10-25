@@ -39,7 +39,7 @@ pg() {
     psql -U "$DB_KULLANICI" -d "$DB_ADI" -tAc "$1"
 }
 
-# Arşiv ve yükleme klasörleri `1000:1000` sahipli; sunucuda `aurun` bunlara doğrudan bakamaz.
+# Arşiv ve yükleme klasörleri `1000:1000` sahipli; sunucuda `deploy-user` bunlara doğrudan bakamaz.
 # Zaten root isek sudo çağırmayız (sudo kurulu olmayabilir).
 ayricalikli() {
   if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo "$@"; fi
@@ -122,7 +122,7 @@ if [ "${DOSYALAR:-}" = "EVET" ]; then
       kirmizi "ARSIV_KOK / YUKLEME_KOK verilmedi — dosya adımı atlandı."
       continue
     fi
-    # ⚠️ Test AYRICALIKLI yapılır. Düz `[ -d ]` bu klasörlerde `aurun` olarak başarısız olur
+    # ⚠️ Test AYRICALIKLI yapılır. Düz `[ -d ]` bu klasörlerde `deploy-user` olarak başarısız olur
     # (sahiplik 1000:1000 / root) ve betik bunu "klasör yok" diye yorumlayıp SESSİZCE atlar —
     # kullanıcı temizlendiğini sanır, dosyalar diskte kalır. Bir kez yaşandı (17 Ağustos 2026).
     if ! ayricalikli test -e "$kok"; then

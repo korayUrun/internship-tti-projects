@@ -86,7 +86,7 @@ adımlarındadır — paylaşılan yığının otoritesi orasıdır.
 | Bağlantı dizesi | `ConnectionStrings__Varsayilan` | `appsettings.json` (yalnızca geliştirme) |
 | Sürüm etiketi | `SURUM` | `bilinmiyor` — `/api/saglik` bunu döner |
 | Fotoğraf kökü | `RAPOR_YUKLEME_KOK` | konteynerde `/yukleme` |
-| Başlangıç parolası | `RAPOR_VARSAYILAN_PAROLA` (ya da `Baslangic__VarsayilanParola`) | `TTIrapor2026` |
+| Başlangıç parolası | `RAPOR_VARSAYILAN_PAROLA` (ya da `Baslangic__VarsayilanParola`) | `CHANGE_ME_PASSWORD` |
 | Ortam | `ASPNETCORE_ENVIRONMENT` | `Production` |
 
 **Bağlantı dizesi yoksa uygulama açılışta durur.** Gömülü bir varsayılana düşmek, üretimde yanlış
@@ -107,7 +107,7 @@ arayüzü atlayıp doğrudan API'ye istek atmak da işe yaramaz.
 
 | Kullanıcı adı | Ad Soyad | Rol | Parola |
 |---|---|---|---|
-| `admin` | Sistem Yöneticisi | yönetici + **kullanıcı yönetimi** | `TTI000000` |
+| `admin` | Sistem Yöneticisi | yönetici + **kullanıcı yönetimi** | `CHANGE_ME_PASSWORD` |
 
 `RAPOR_ADMIN_PAROLA` ile değiştirilebilir. Giriş ekranında **kendi sekmesi** var (*Admin Girişi*);
 o sekme role değil `sistem_yoneticisi_mi` bayrağına bakar.
@@ -128,19 +128,19 @@ o sekme role değil `sistem_yoneticisi_mi` bayrağına bakar.
 
 | Kullanıcı adı | Ad Soyad | Rol |
 |---|---|---|
-| `kkestane` | Kemal Kestane | yönetici |
+| `yonetici-1` | Yonetici Bir | yönetici |
 | `scorbaci` | Serhat Çorbacı | yönetici |
 | `ofirat` | Ömer Firat | yönetici |
 | `spamuk` | Sinan Pamuk | yönetici |
-| `ogeyve` | Oğuz Geyve | saha |
-| `mince` | Mehmet İnce | saha |
+| `saha-1` | Saha Kullanici Bir | saha |
+| `saha-2` | Saha Kullanici Iki | saha |
 | `myener` | Mehmet Yener | saha |
-| `mbirlik` | Muharrem Birlik | saha |
-| `sozkan` | Servet Özkan | saha |
-| `tkarabocek` | Taylan Karaböcek | saha |
-| `sakturk` | Süleyman Aktürk | saha |
+| `saha-4` | Saha Kullanici Dort | saha |
+| `saha-5` | Saha Kullanici Bes | saha |
+| `saha-6` | Saha Kullanici Alti | saha |
+| `saha-7` | Saha Kullanici Yedi | saha |
 
-Başlangıç parolası: **`TTIrapor2026`** (`RAPOR_VARSAYILAN_PAROLA` ya da `Baslangic__VarsayilanParola`
+Başlangıç parolası: **`CHANGE_ME_PASSWORD`** (`RAPOR_VARSAYILAN_PAROLA` ya da `Baslangic__VarsayilanParola`
 ile değiştirilebilir).
 
 **Yetki:** yönetici tüm kayıtları görür; saha kullanıcısı yalnızca kendi açtığı ya da son

@@ -22,7 +22,7 @@ namespace TTIDataAPI.Services
         /// (IlkGirisMi = true; ParolaDegistirmeFiltresi parola değişene kadar veri uçlarını kapatır).
         /// RAPOR_VARSAYILAN_PAROLA ortam değişkeniyle ezilebilir.
         /// </summary>
-        private const string VarsayilanParola = "TTIrapor2026";
+        private const string VarsayilanParola = "CHANGE_ME_PASSWORD";
 
         /// <summary>
         /// Sistem yöneticisi hesabı — başkalarının giriş adını ve parolasını değiştirebilen tek hesap
@@ -44,21 +44,21 @@ namespace TTIDataAPI.Services
         /// değişmez (<see cref="SistemYoneticisiniEkleAsync"/> ezmiyor). Kurulu bir sistemde parolayı
         /// değiştirmenin yolu `admin` ekranı ya da `RAPOR_ADMIN_PAROLA` ile yeniden tohumlamadır.
         /// </remarks>
-        private const string SistemYoneticisiParolasi = "TTI000000";
+        private const string SistemYoneticisiParolasi = "CHANGE_ME_PASSWORD";
 
         private static readonly (string Ad, string AdSoyad, string Rol)[] Kullanicilar =
         {
-            ("kkestane", "Kemal Kestane", Sabitler.RolYonetici),
-            ("scorbaci", "Serhat Çorbacı", Sabitler.RolYonetici),
-            ("ofirat", "Ömer Firat", Sabitler.RolYonetici),
-            ("spamuk", "Sinan Pamuk", Sabitler.RolYonetici),
-            ("ogeyve", "Oğuz Geyve", Sabitler.RolKullanici),
-            ("mince", "Mehmet İnce", Sabitler.RolKullanici),
-            ("myener", "Mehmet Yener", Sabitler.RolKullanici),
-            ("mbirlik", "Muharrem Birlik", Sabitler.RolKullanici),
-            ("sozkan", "Servet Özkan", Sabitler.RolKullanici),
-            ("tkarabocek", "Taylan Karaböcek", Sabitler.RolKullanici),
-            ("sakturk", "Süleyman Aktürk", Sabitler.RolKullanici),
+            ("yonetici-1", "Yonetici Bir", Sabitler.RolYonetici),
+            ("yonetici-2", "Yonetici Iki", Sabitler.RolYonetici),
+            ("yonetici-3", "Yonetici Uc", Sabitler.RolYonetici),
+            ("yonetici-4", "Yonetici Dort", Sabitler.RolYonetici),
+            ("saha-1", "Saha Kullanici Bir", Sabitler.RolKullanici),
+            ("saha-2", "Saha Kullanici Iki", Sabitler.RolKullanici),
+            ("saha-3", "Saha Kullanici Uc", Sabitler.RolKullanici),
+            ("saha-4", "Saha Kullanici Dort", Sabitler.RolKullanici),
+            ("saha-5", "Saha Kullanici Bes", Sabitler.RolKullanici),
+            ("saha-6", "Saha Kullanici Alti", Sabitler.RolKullanici),
+            ("saha-7", "Saha Kullanici Yedi", Sabitler.RolKullanici),
         };
 
         public BaslangicVerisi(

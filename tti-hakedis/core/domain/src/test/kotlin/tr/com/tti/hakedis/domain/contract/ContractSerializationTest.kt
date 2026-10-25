@@ -14,10 +14,10 @@ class ContractSerializationTest {
 
     private val contract = Contract(
         meta = ContractMeta(
-            id = "2026-guvenay-rota-1",
-            name = "2026 Güvenay Rota-1",
+            id = "2026-sample-rota-1",
+            name = "2026 Sample Rota-1",
             title = "Rota-1: Edirne-Kırklareli-Tekirdağ",
-            sheetName = "2026_Güvenay_Rota-1 Br Fiyatlar",
+            sheetName = "2026_Sample_Rota-1 Br Fiyatlar",
         ),
         items = listOf(
             PozItem(
@@ -52,7 +52,7 @@ class ContractSerializationTest {
     fun `Turkce karakterler korunur`() {
         val geriOkunan = json.decodeFromString<Contract>(json.encodeToString(contract))
 
-        assertThat(geriOkunan.meta.name).isEqualTo("2026 Güvenay Rota-1")
-        assertThat(geriOkunan.meta.sheetName).contains("Güvenay")
+        assertThat(geriOkunan.meta.name).isEqualTo("2026 Sample Rota-1")
+        assertThat(geriOkunan.meta.sheetName).contains("Sample")
     }
 }

@@ -8,13 +8,13 @@ Accept: application/json
 POST {{sunucu}}/api/oturum/giris
 Content-Type: application/json
 
-{ "kullaniciAdi": "ogeyve", "parola": "TTIrapor2026" }
+{ "kullaniciAdi": "saha-1", "parola": "CHANGE_ME_PASSWORD" }
 
 ### Parola değiştir — ilk girişte ZORUNLU, yapılmadan veri uçları 403 döner
 POST {{sunucu}}/api/oturum/parola
 Content-Type: application/json
 
-{ "mevcutParola": "TTIrapor2026", "yeniParola": "yeni-parolam" }
+{ "mevcutParola": "CHANGE_ME_PASSWORD", "yeniParola": "yeni-parolam" }
 
 ### Oturumdaki kullanıcı
 GET {{sunucu}}/api/oturum/ben

@@ -22,7 +22,7 @@ class PozSablonuTest {
     private val referans = listOf(grup, direk, lente)
 
     private fun sablon(miktarlar: Map<Long, BigDecimal> = emptyMap()) =
-        PozSablonu.uret("Rota-1: Edirne-Kırklareli", "2026 Güvenay Rota-1", referans, miktarlar)
+        PozSablonu.uret("Rota-1: Edirne-Kırklareli", "2026 Sample Rota-1", referans, miktarlar)
 
     @Test
     fun `sablon okuyucudan gecer ve kimlik sutunu okunur`() {

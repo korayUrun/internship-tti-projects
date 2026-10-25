@@ -42,7 +42,7 @@ data class KullaniciBilgiIstegi(val adSoyad: String?, val rol: Rol?, val bolgeKo
  * bir bölge açıldığında gerekir — o zaman `bolge` tablosu da değişeceği için işlem zaten migration
  * ister (NEWPHASES.md: "kayıt ol yok, parolalar elle atanır").
  *
- * Fazın asıl amacı ilk kurulum parolalarının (`TTI111111` …) değiştirilmesidir.
+ * Fazın asıl amacı ilk kurulum parolalarının (`CHANGE_ME_PASSWORD` …) değiştirilmesidir.
  */
 @RestController
 @RequestMapping("/api/kullanicilar")

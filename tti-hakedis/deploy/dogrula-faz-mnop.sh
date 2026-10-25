@@ -27,8 +27,8 @@ source "$KAYNAK/dogrula.sh"
 DB_KAP="${DB_KAP:-tti-db}"
 DB_ADI="${DB_ADI:-tti}"
 DB_KULLANICI="${DB_KULLANICI:-tti_hakedis}"
-SOZLESME="2026-guvenay-rota-1"
-SOZLESME_2="2026guvenay-rota-2"
+SOZLESME="2026-sample-rota-1"
+SOZLESME_2="2026sample-rota-2"
 KAPSAM="DEPLASE_IYILESTIRME"
 POZ="r5"
 BOLGE_DOSYA_KODU="IZMIR"
@@ -113,9 +113,9 @@ if [ "${SIFIRLA:-0}" = "1" ]; then
     "$([ "$(pg "select count(*) from poz_fiyat;")" -gt 100 ] && echo True || echo False)"
 fi
 
-JAR=$(giris izmir TTI666666)
-JAR_YON=$(giris yonetici TTI000000)
-JAR_ANK=$(giris ankara TTI444444)
+JAR=$(giris izmir CHANGE_ME_PASSWORD)
+JAR_YON=$(giris yonetici CHANGE_ME_PASSWORD)
+JAR_ANK=$(giris ankara CHANGE_ME_PASSWORD)
 
 # ==============================================================================================
 echo "=== Faz M: onay akışı ve imza kalktı ==="

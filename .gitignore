@@ -26,9 +26,17 @@ desktop.ini
 .env.oncesi-*
 *.pem
 *.key
+*.crt
+*.cer
+*.der
+*.pfx
 *.p12
 *.jks
 *.keystore
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
 api_keys.txt
 appsettings.Local.json
 local.properties
@@ -106,6 +114,10 @@ tmp/
 *.tar
 *.tar.gz
 *.tgz
+*.7z
+*.rar
+*.dump
+*.sql.gz
 
 # ---------- Kök dizindeki ekran görüntüleri ----------
 /Screenshot*.png
