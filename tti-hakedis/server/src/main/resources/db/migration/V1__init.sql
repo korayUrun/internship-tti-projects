@@ -71,14 +71,14 @@ create table kullanici (
 create unique index kullanici_bolge_ux on kullanici (bolge_id) where rol = 'BOLGE_SORUMLUSU' and aktif;
 
 insert into kullanici (kullanici_adi, ad_soyad, sifre_hash, rol, bolge_id) values
-    ('ist-avr',  'İstanbul Avrupa Bölge Sorumlusu',  '$2y$10$6XO4x9wQ6hZ4vx2O2gHDo.OLS0FeJbfikdpiLWvMYgdWvD5LtQdK6', 'BOLGE_SORUMLUSU', 1),
-    ('ist-and',  'İstanbul Anadolu Bölge Sorumlusu', '$2y$10$hMgey.2G3iAjwpJeLs9JCe/A5dQuatKK2yZz2B259.rCYLPBYnRG2', 'BOLGE_SORUMLUSU', 2),
-    ('edirne',   'Edirne Bölge Sorumlusu',           '$2y$10$kEv1d.PXeW603GMYpn2ExuU0PoMWnoWItaEFvEk5meyU9BfEWyk5S', 'BOLGE_SORUMLUSU', 3),
-    ('ankara',   'Ankara Bölge Sorumlusu',           '$2y$10$vkLpK7kOBWOnxWkD..xlEOtluj3ByjcERzLCYylPTWlURgx4pmjuS', 'BOLGE_SORUMLUSU', 4),
-    ('kutahya',  'Kütahya-Şırnak Bölge Sorumlusu',   '$2y$10$rWDe7IV4.1gpxlJfUxZgau57lryneyPmJC33lG3qYbcUbkL/Ug.PW', 'BOLGE_SORUMLUSU', 5),
-    ('izmir',    'İzmir Bölge Sorumlusu',            '$2y$10$u1cpeq.UZUzDGTn5Mi7CEuScSH682PFOpyNCSgcBMyyb3pMvPy9oO', 'BOLGE_SORUMLUSU', 6),
-    ('bursa',    'Bursa Bölge Sorumlusu',            '$2y$10$KaXDaq4h9GocPK6KtaJYFegFZMj33V3mqEkhugF663W2Q3EbScOa6', 'BOLGE_SORUMLUSU', 7),
-    ('yonetici', 'Yönetici',                         '$2y$10$HwTmC2oS1B8r4DI3el.KFOpyEzf55fw9iQrhLewhWYziC98Tx5hFu', 'YONETICI',        null);
+    ('ist-avr',  'İstanbul Avrupa Bölge Sorumlusu',  '$2b$12$guFCt0vfHa2PaxA2QZVG6uaLMPMHRHletet0Qm/bSNTP9yuYCApea', 'BOLGE_SORUMLUSU', 1),
+    ('ist-and',  'İstanbul Anadolu Bölge Sorumlusu', '$2b$12$guFCt0vfHa2PaxA2QZVG6uaLMPMHRHletet0Qm/bSNTP9yuYCApea', 'BOLGE_SORUMLUSU', 2),
+    ('edirne',   'Edirne Bölge Sorumlusu',           '$2b$12$guFCt0vfHa2PaxA2QZVG6uaLMPMHRHletet0Qm/bSNTP9yuYCApea', 'BOLGE_SORUMLUSU', 3),
+    ('ankara',   'Ankara Bölge Sorumlusu',           '$2b$12$guFCt0vfHa2PaxA2QZVG6uaLMPMHRHletet0Qm/bSNTP9yuYCApea', 'BOLGE_SORUMLUSU', 4),
+    ('kutahya',  'Kütahya-Şırnak Bölge Sorumlusu',   '$2b$12$guFCt0vfHa2PaxA2QZVG6uaLMPMHRHletet0Qm/bSNTP9yuYCApea', 'BOLGE_SORUMLUSU', 5),
+    ('izmir',    'İzmir Bölge Sorumlusu',            '$2b$12$guFCt0vfHa2PaxA2QZVG6uaLMPMHRHletet0Qm/bSNTP9yuYCApea', 'BOLGE_SORUMLUSU', 6),
+    ('bursa',    'Bursa Bölge Sorumlusu',            '$2b$12$guFCt0vfHa2PaxA2QZVG6uaLMPMHRHletet0Qm/bSNTP9yuYCApea', 'BOLGE_SORUMLUSU', 7),
+    ('yonetici', 'Yönetici',                         '$2b$12$guFCt0vfHa2PaxA2QZVG6uaLMPMHRHletet0Qm/bSNTP9yuYCApea', 'YONETICI',        null);
 
 -- ---------------------------------------------------------------------------
 -- Kable envanteri — dış kaynaktan (xlsx) içe aktarılır, `:tools:kable-import` doldurur.

@@ -9,10 +9,10 @@
 
 | Rol | Kullanıcı | Parola |
 |---|---|---|
-| Yönetici | `yonetici` | `TTI000000` |
-| Bursa sorumlusu | `bursa` | `TTI777777` |
-| Ankara sorumlusu | `ankara` | `TTI444444` |
-| İzmir sorumlusu | `izmir` | `TTI666666` |
+| Yönetici | `yonetici` | `CHANGE_ME_PASSWORD` |
+| Bursa sorumlusu | `bursa` | `CHANGE_ME_PASSWORD` |
+| Ankara sorumlusu | `ankara` | `CHANGE_ME_PASSWORD` |
+| İzmir sorumlusu | `izmir` | `CHANGE_ME_PASSWORD` |
 
 **Başlangıç durumu:** Bursa'da `01` SP numaralı bir iş ve `BURSA_2026_FIZIBILITE_001` belgesi
 (4.348,57 ₺) *Satın Alma Onayı Beklemede* durumunda, onay kuyruğunda. Edirne'de iptal edilmiş bir iş

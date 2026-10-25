@@ -19,10 +19,10 @@ class DocumentModelBuilderTest {
 
     private val contract = Contract(
         meta = ContractMeta(
-            id = "2026-guvenay-rota-1",
-            name = "2026 Güvenay Rota-1",
+            id = "2026-sample-rota-1",
+            name = "2026 Sample Rota-1",
             title = "Rota-1: Edirne-Kırklareli-Tekirdağ",
-            sheetName = "2026_Güvenay_Rota-1 Br Fiyatlar",
+            sheetName = "2026_Sample_Rota-1 Br Fiyatlar",
         ),
         items = listOf(
             group("g1", "1", "HAVAİ GÜZERGAH İMALATLARI"),
@@ -36,7 +36,7 @@ class DocumentModelBuilderTest {
     private val workOrder = WorkOrder(
         region = Region.IST_AVR,
         scope = Scope.ARIZA_SONRASI_ONARIM,
-        contractId = "2026-guvenay-rota-1",
+        contractId = "2026-sample-rota-1",
         spNo = "  SP-12345  ",
         route = "Rota-1",
         ekAraligi = "EK-4 / EK-5",
@@ -133,7 +133,7 @@ class DocumentModelBuilderTest {
 
         assertThat(model.title).isEqualTo("Rota-1: Edirne-Kırklareli-Tekirdağ")
         assertThat(model.header.spNo).isEqualTo("SP-12345")
-        assertThat(model.header.contractName).isEqualTo("2026 Güvenay Rota-1")
+        assertThat(model.header.contractName).isEqualTo("2026 Sample Rota-1")
         assertThat(model.createdAt).isEqualTo(createdAt)
     }
 

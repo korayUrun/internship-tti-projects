@@ -103,7 +103,7 @@ sudo vgs                         # VFree: LVM'de dağıtılmamış boş alan var
 Gereken: motorun veri klasörü için **en az 25 GB**. `/var` küçükse iki yol var:
 
 - **`VFree` > 0 ise** bölmeyi büyüt: `sudo lvextend -L +25G -r /dev/<VG>/varLV` (canlıda çalışır).
-- **`VFree` 0 ise** (TRLPVNOCBO01'de böyleydi) motoru boş alana yönlendir — 2. adımın sonundaki
+- **`VFree` 0 ise** (example-host'de böyleydi) motoru boş alana yönlendir — 2. adımın sonundaki
   `data-root` bölümü. Root bölmesini küçültmek **XFS'te mümkün değildir**, o yolu denemeyin.
 
 > 💡 `/var` dolarsa yalnızca konteynerler durmaz; sistem log'ları ve PostgreSQL de yazamaz hâle
@@ -121,7 +121,7 @@ masaüstü uygulamasıdır ve sunucuda zaten çalışmaz. Tek kaydı: Red Hat de
 > güvenlik itirazının (firewalld'yi atlaması) bu topolojide etkisiz kalması — yığın yalnızca
 > 8081'i yayımlıyor, veritabanı `127.0.0.1`'e bağlı. podman değerlendirilip **elendi**: asıl
 > üstünlüğü Red Hat desteğiydi, IT ekibinin böyle bir destek ilişkisi olmadığı için devre dışı
-> kaldı. Bu rehberdeki adımlar RHEL 9.8'de (`TRLPVNOCBO01`) uygulanmış ve doğrulanmıştır.
+> kaldı. Bu rehberdeki adımlar RHEL 9.8'de (`example-host`) uygulanmış ve doğrulanmıştır.
 >
 > Kararı değiştirecek tek koşul: güvenlik tarafının "kök yetkili üçüncü parti servis istemiyoruz"
 > demesi. O durumda podman'a geçiş yarım günlük iştir — compose dosyası aynen çalışır, tek fark

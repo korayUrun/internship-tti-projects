@@ -10,7 +10,7 @@
 # {$DOMAIN} .env'deki DOMAIN değişkeninden gelir (compose `environment:` ile geçirir).
 #
 # --- TLS/HTTPS (2026-08-13'te eklendi) -----------------------------------------------------
-# Sertifika kurumsal CA'dan (DigiCert/RapidSSL) geldi; wildcard `*.turktelekomint.com` hem
+# Sertifika kurumsal CA'dan (DigiCert/RapidSSL) geldi; wildcard `*.example.invalid` hem
 # hakedis. hem rapor. alt alan adlarını kapsar. Caddy'ye ELLE veriyoruz (aşağıdaki `tls`), o yüzden
 # `auto_https off` kalıyor — Caddy kendi sertifika üretmeye (ACME) çalışmasın (kapalı ağda gürültü).
 # Manuel `tls` yönergesi auto_https'ten bağımsız çalışır. Sertifika/anahtar sunucuda `certs/` altında

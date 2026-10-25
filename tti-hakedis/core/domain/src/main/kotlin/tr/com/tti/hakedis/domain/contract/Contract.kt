@@ -7,8 +7,8 @@ import java.math.BigDecimal
 /**
  * Bir sözleşmenin kimlik bilgileri.
  *
- * @param id assets içindeki dosya adı ile aynı olan teknik kimlik (ör. `2026-guvenay-rota-1`)
- * @param name kullanıcıya listede gösterilen kısa ad (ör. `2026 Güvenay Rota-1`)
+ * @param id assets içindeki dosya adı ile aynı olan teknik kimlik (ör. `2026-sample-rota-1`)
+ * @param name kullanıcıya listede gösterilen kısa ad (ör. `2026 Sample Rota-1`)
  * @param title PDF/önizleme başlığı — kaynak Excel'in 1. satırındaki metin
  * @param sheetName kaynak Excel sheet adı (izlenebilirlik için)
  */

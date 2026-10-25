@@ -68,9 +68,9 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     printf '  %-14s -> %s\n' "$uc" "$(curl -s -o /dev/null -w '%{http_code}' "$KOK/api/$uc")"
   done
 
-  JAR_AVR=$(giris ist-avr TTI111111)
-  JAR_ANK=$(giris ankara TTI444444)
-  JAR_YON=$(giris yonetici TTI000000)
+  JAR_AVR=$(giris ist-avr CHANGE_ME_PASSWORD)
+  JAR_ANK=$(giris ankara CHANGE_ME_PASSWORD)
+  JAR_YON=$(giris yonetici CHANGE_ME_PASSWORD)
 
   # Faz O: kable bölge kısıtı KALKTI — her kullanıcı her kabloyu görebilir. Buna karşılık liste
   # aramasız boş döner (envanter 900+ satır) ve üç karakterden kısa arama da boş.
@@ -102,7 +102,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   # Sabit fiyat aranmıyor: sözleşmenin yayındaki sürümü değişmiş olabilir. Kilitlenen şey biçim —
   # her birim fiyat **string** ve **en fazla 2 ondalık** olmalı (Faz P).
   echo "=== Para: birim fiyat string ve 2 hane ==="
-  curl -s -b "$JAR_AVR" "$KOK/api/sozlesmeler/2026-guvenay-rota-1/pozlar" | python3 -c "
+  curl -s -b "$JAR_AVR" "$KOK/api/sozlesmeler/2026-sample-rota-1/pozlar" | python3 -c "
 import sys, json
 from decimal import Decimal
 

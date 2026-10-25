@@ -25,5 +25,5 @@
         ~~debug yapısına ayrı varsayılan~~ konmuyor — emülatörün de üretim sunucusuna gitmesi
         istendi ve iki farklı adres, "hangi APK nereye bağlanıyor" sorusunu geri getirirdi.
     -->
-    <string name="server_address" translatable="false">https://hakedis.turktelekomint.com</string>
+    <string name="server_address" translatable="false">https://hakedis.example.com</string>
 </resources>

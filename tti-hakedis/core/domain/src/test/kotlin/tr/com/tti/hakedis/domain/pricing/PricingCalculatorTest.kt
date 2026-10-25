@@ -7,7 +7,7 @@ import tr.com.tti.hakedis.domain.contract.parseSortKey
 import java.math.BigDecimal
 
 class PricingCalculatorTest {
-    // Gerçek sözleşme verisi: 2026 Güvenay Rota-1, poz 1.1 "Direk Dikme-montaj"
+    // Gerçek sözleşme verisi: 2026 Sample Rota-1, poz 1.1 "Direk Dikme-montaj"
     private val directDikme = pozItem(id = "r5", pozNo = "1.1", unitPrice = "648.35852723050107")
 
     // Poz 2.1 "Direkli güzergahta F/O Havai Kablo çekimi - montaj"

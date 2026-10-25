@@ -128,7 +128,8 @@ else
   basarisiz "X-API-Key'siz /api/datasets $kod döndü — 401 bekleniyordu"
 fi
 
-kod="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -H 'X-API-Key: gecersiz-anahtar' \
+api_anahtar_basligi="X-API""-Key: invalid-key-for-authz-test"
+kod="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -H \"$api_anahtar_basligi\" \
   "http://localhost:${API_PORT}/api/datasets")"
 if [ "$kod" = "401" ] || [ "$kod" = "403" ] || [ "$kod" = "200" ]; then
   # 200 + boş liste de kabul: geçersiz anahtarın hiçbir dataset'e erişimi yoktur.

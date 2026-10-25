@@ -264,7 +264,7 @@ export function boyut(bayt: number): string {
 }
 
 /**
- * Ad soyaddan baş harfler: "Servet Özkan" → "SÖ". Avatar dairesinde kullanılır.
+ * Ad soyaddan baş harfler: "Saha Kullanici Bes" → "SÖ". Avatar dairesinde kullanılır.
  *
  * Büyük harfe çevirme `tr-TR` ile: `Locale.ROOT` burada **yanlış** olurdu — bu bir karşılaştırma ya
  * da dosya adı değil, kullanıcıya gösterilen metin, ve "ismail" ASCII kuralıyla "I" verirdi (§5).

@@ -139,7 +139,7 @@ proxy üzerindendir (bu yüzden güvenlik duvarında 8081/8082 **açılmaz**, ya
 > DNS yoksa geçici çözüm: her istemcinin hosts dosyasına aynı iki satır — ölçeklenmez.
 
 **HTTPS aktiftir** (2026-08-13). `Caddyfile` `https://` bloklarıyla kurumsal CA sertifikasını
-(`*.turktelekomint.com` wildcard) `certs/` altından `tls` ile sunar; 80 → 443'e yönlendirir.
+(`*.example.invalid` wildcard) `certs/` altından `tls` ile sunar; 80 → 443'e yönlendirir.
 `auto_https off` **kalır** (manuel sertifika; Caddy ACME denemesin). Ayrıntı ve yenileme (son
 2027-02-27): `ServerDeploy.md` §14. Sertifika/anahtar yalnızca sunucuda, git/zip dışında (`certs/`).
 

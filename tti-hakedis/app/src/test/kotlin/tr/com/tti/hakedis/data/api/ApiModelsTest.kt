@@ -323,7 +323,7 @@ class ApiModelsTest {
         val BELGE_JSON = """
             {"id":557,"isId":306,"belgeNo":"ANKARA_2026_KESIF_001","tur":"KESIF","durum":"TAMAMLANDI",
              "durumMetni":"1. Keşif Tamamlandı","bolgeKodu":"ANKARA","yil":2026,"siraNo":1,
-             "sozlesmeKodu":"2026-guvenay-rota-1","sozlesmeAdi":"2026 Güvenay Rota-1",
+             "sozlesmeKodu":"2026-sample-rota-1","sozlesmeAdi":"2026 Sample Rota-1",
              "fiyatVersiyonuId":142,"olusturma":"2026-07-31T07:36:02.348309Z",
              "gonderme":"2026-07-31T07:36:02.399786Z","tamamlanma":"2026-07-31T07:36:02.399786Z",
              "sonGuncelleme":"2026-07-31T07:36:02.399786Z","sonGuncelleyenAdSoyad":"Ankara Bölge Sorumlusu",
